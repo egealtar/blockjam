@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 77540afc213f4014190e085072b83fc8, type: 3}
+  m_Name: GameConfig
+  m_EditorClassIdentifier: 
+  Levels:
+  - {fileID: 11400000, guid: 61b3905f4cd456c4c855e89d651abc33, type: 2}
+  - {fileID: 11400000, guid: 022420de28c14184795f73d3cdf65cdc, type: 2}
+  - {fileID: 11400000, guid: d4b68f482245daf4a8f83388c6b6cf15, type: 2}
+  - {fileID: 11400000, guid: 1a89e353deff75d4db0ceaf81a1ab290, type: 2}
+  - {fileID: 11400000, guid: d6c54f0f5b32e974281549e6b3fc6285, type: 2}
+  SlotCount: 7
+  MatchSize: 3
+  CellSpacing: 12
+  SlotSpacing: 8
+  UnitToSlotDuration: 0.28
+  SlotCompactDuration: 0.15
+  MatchPopDelay: 0.06
+  MatchPopDuration: 0.2
+  UnitPrewarm: 32
+  VfxPrewarm: 8

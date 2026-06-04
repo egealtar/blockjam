@@ -1,0 +1,206 @@
+using System.Collections;
+using UnityEngine;
+using BlockJam.Data;
+using BlockJam.Pooling;
+using BlockJam.Util;
+
+namespace BlockJam.Gameplay
+{
+    /// <summary>
+    /// A single tappable piece. Pooled (never Instantiate/Destroy at runtime).
+    /// Holds its color identity, the visual mesh, optional Box blocker, and the small
+    /// set of animations the game needs (idle, jump-to-slot, pop on match).
+    ///
+    /// The Unit knows nothing about the board or slots - it only animates itself and
+    /// reports completion via callbacks. All decisions live in BoardController/SlotController.
+    /// </summary>
+    [RequireComponent(typeof(Collider))]
+    public class Unit : MonoBehaviour, IPoolable
+    {
+        [Header("Visual")]
+        [Tooltip("Renderer whose material color is tinted to represent the unit color.")]
+        [SerializeField] private Renderer bodyRenderer;
+
+        [Tooltip("Optional Animator with Idle/Jump/Die states. Leave null to skip animation.")]
+        [SerializeField] private Animator animator;
+
+        [Header("Box Blocker (nice-to-have)")]
+        [Tooltip("Child GameObject representing the box shell. Shown when the unit starts boxed.")]
+        [SerializeField] private GameObject boxVisual;
+
+        [Header("Anim Params (must match the Animator controller)")]
+        [SerializeField] private string idleState = "Idle";
+        [SerializeField] private string jumpState = "Jump";
+        [SerializeField] private string dieState = "Die";
+
+        // --- runtime state ---
+        public UnitColor Color { get; private set; }
+        public int CellX { get; private set; }
+        public int CellY { get; private set; }
+        public bool IsBoxed { get; private set; }
+
+        private MaterialPropertyBlock _mpb;
+        private Collider _collider;
+        private Coroutine _moveRoutine;
+
+        private static readonly int ColorProp = Shader.PropertyToID("_BaseColor");
+
+        private void Awake()
+        {
+            _collider = GetComponent<Collider>();
+            _mpb = new MaterialPropertyBlock();
+        }
+
+        public void OnSpawned()
+        {
+            transform.localScale = Vector3.one;
+            SetTappable(true);
+        }
+
+        public void OnDespawned()
+        {
+            if (_moveRoutine != null) { StopCoroutine(_moveRoutine); _moveRoutine = null; }
+            transform.localScale = Vector3.one;
+        }
+
+        /// <summary>Configures the unit's identity and look. Call right after Get() from the pool.</summary>
+        public void Init(UnitColor color, int cellX, int cellY, bool boxed, Color displayColor)
+        {
+            Color = color;
+            CellX = cellX;
+            CellY = cellY;
+            IsBoxed = boxed;
+
+            if (bodyRenderer != null)
+            {
+                bodyRenderer.GetPropertyBlock(_mpb);
+                _mpb.SetColor(ColorProp, displayColor);
+                bodyRenderer.SetPropertyBlock(_mpb);
+            }
+
+            if (boxVisual != null) boxVisual.SetActive(boxed);
+
+            // A boxed unit cannot be tapped until the box breaks.
+            SetTappable(!boxed);
+            PlayIdle();
+        }
+
+        public void SetCell(int x, int y)
+        {
+            CellX = x;
+            CellY = y;
+        }
+
+        /// <summary>Enables/disables the collider so rapid taps on invalid units are ignored cheaply.</summary>
+        public void SetTappable(bool tappable)
+        {
+            if (_collider != null) _collider.enabled = tappable;
+        }
+
+        /// <summary>Breaks the box (e.g. an adjacent match cleared next to it), making the unit usable.</summary>
+        public void BreakBox()
+        {
+            if (!IsBoxed) return;
+            IsBoxed = false;
+            if (boxVisual != null) boxVisual.SetActive(false);
+            SetTappable(true);
+        }
+
+        // ---- animation helpers ----
+        public void PlayIdle() { if (animator != null && animator.runtimeAnimatorController != null) animator.Play(idleState); }
+        public void PlayJump() { if (animator != null && animator.runtimeAnimatorController != null) animator.Play(jumpState); }
+        public void PlayDie()  { if (animator != null && animator.runtimeAnimatorController != null) animator.Play(dieState); }
+
+        /// <summary>
+        /// Flies the unit to a target position with a jump arc (the "throw into slot" feel),
+        /// then invokes onArrive. Disables tapping for the duration so it can't be re-selected.
+        /// </summary>
+        public void JumpToSlot(Vector3 target, float duration, float arcHeight, System.Action onArrive)
+        {
+            SetTappable(false);
+            PlayJump();
+            if (_moveRoutine != null) StopCoroutine(_moveRoutine);
+            _moveRoutine = StartCoroutine(JumpRoutine(target, duration, arcHeight, onArrive));
+        }
+
+        private IEnumerator JumpRoutine(Vector3 target, float duration, float arcHeight, System.Action onArrive)
+        {
+            // Lift straight up first so the unit clears the board, then travel across at that
+            // height, then drop into the slot. This prevents flying through other units.
+            float liftHeight = Mathf.Max(arcHeight, 6f);
+            Vector3 start = transform.position;
+            Vector3 apexStart = start + Vector3.up * liftHeight;
+            Vector3 apexEnd = new Vector3(target.x, target.y + liftHeight, target.z);
+
+            float liftT = duration * 0.30f;
+            float travelT = duration * 0.40f;
+            float dropT = duration * 0.30f;
+
+            yield return Tweener.Move(transform, apexStart, liftT, Easing.OutQuad);   // up
+            yield return Tweener.Move(transform, apexEnd, travelT, Easing.InOutQuad); // across (above everything)
+            yield return Tweener.Move(transform, target, dropT, Easing.InQuad);       // down into slot
+
+            PlayIdle();
+            _moveRoutine = null;
+            onArrive?.Invoke();
+        }
+
+        /// <summary>
+        /// Quick left-right shake to signal "this unit can't be selected" (it's blocked).
+        /// Used as negative feedback when the player taps a fully-surrounded unit.
+        /// </summary>
+        public void ShakeBlocked()
+        {
+            if (_moveRoutine != null) return; // don't interrupt a real move
+            StartCoroutine(ShakeRoutine());
+        }
+
+        private IEnumerator ShakeRoutine()
+        {
+            Vector3 origin = transform.position;
+            float dur = 0.28f;
+            float elapsed = 0f;
+            float amp = 0.25f;     // shake distance
+            float freq = 30f;      // shake speed
+
+            while (elapsed < dur)
+            {
+                elapsed += Time.deltaTime;
+                float damper = 1f - (elapsed / dur);          // fades out
+                float offset = Mathf.Sin(elapsed * freq) * amp * damper;
+                transform.position = origin + Vector3.right * offset;
+                yield return null;
+            }
+            transform.position = origin;
+        }
+
+        /// <summary>Slides the unit to a new slot position (used when the bar compacts after a match).</summary>
+        public void SlideTo(Vector3 target, float duration, System.Action onArrive = null)
+        {
+            if (_moveRoutine != null) StopCoroutine(_moveRoutine);
+            _moveRoutine = StartCoroutine(SlideRoutine(target, duration, onArrive));
+        }
+
+        private IEnumerator SlideRoutine(Vector3 target, float duration, System.Action onArrive)
+        {
+            yield return Tweener.Move(transform, target, duration, Easing.OutQuad);
+            _moveRoutine = null;
+            onArrive?.Invoke();
+        }
+
+        /// <summary>Plays the pop (die anim + scale-out) then invokes onDone so the owner can pool it.</summary>
+        public void PlayPop(float duration, System.Action onDone)
+        {
+            PlayDie();
+            StartCoroutine(PopRoutine(duration, onDone));
+        }
+
+        private IEnumerator PopRoutine(float duration, System.Action onDone)
+        {
+            // tiny anticipation then scale to zero
+            yield return Tweener.Scale(transform, transform.localScale * 1.15f, duration * 0.3f, Easing.OutQuad);
+            yield return Tweener.Scale(transform, Vector3.zero, duration * 0.7f, Easing.InQuad);
+            onDone?.Invoke();
+        }
+    }
+}
