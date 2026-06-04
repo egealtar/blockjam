@@ -37,44 +37,44 @@ MonoBehaviour:
   - Occupied: 0
     Color: 0
     InBox: 0
-  - Occupied: 0
-    Color: 0
+  - Occupied: 1
+    Color: 3
+    InBox: 0
+  - Occupied: 1
+    Color: 3
     InBox: 0
   - Occupied: 0
     Color: 0
     InBox: 0
-  - Occupied: 0
+  - Occupied: 1
+    Color: 3
+    InBox: 0
+  - Occupied: 1
+    Color: 3
+    InBox: 0
+  - Occupied: 1
+    Color: 3
+    InBox: 0
+  - Occupied: 1
+    Color: 3
+    InBox: 0
+  - Occupied: 1
+    Color: 3
+    InBox: 0
+  - Occupied: 1
+    Color: 3
+    InBox: 0
+  - Occupied: 1
     Color: 0
     InBox: 0
-  - Occupied: 0
+  - Occupied: 1
     Color: 0
     InBox: 0
-  - Occupied: 0
+  - Occupied: 1
     Color: 0
     InBox: 0
-  - Occupied: 0
-    Color: 0
-    InBox: 0
-  - Occupied: 0
-    Color: 0
-    InBox: 0
-  - Occupied: 0
-    Color: 0
-    InBox: 0
-  - Occupied: 0
-    Color: 0
-    InBox: 0
-  - Occupied: 0
-    Color: 0
-    InBox: 0
-  - Occupied: 0
-    Color: 0
-    InBox: 0
-  - Occupied: 0
-    Color: 0
-    InBox: 0
-  - Occupied: 0
-    Color: 0
+  - Occupied: 1
+    Color: 3
     InBox: 0
   - Occupied: 0
     Color: 0

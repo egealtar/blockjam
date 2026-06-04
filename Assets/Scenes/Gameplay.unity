@@ -1026,8 +1026,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   cam: {fileID: 1381877372}
+  tiltAngle: 50
+  boardCenter: {x: 0, y: 0, z: 0}
   padding: 1.5
   bottomReserve: 0.22
+  lookOffsetForward: 0
 --- !u!114 &1381877376
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1743,8 +1746,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 16bdb5117cdf0e6468b207889f2af6b0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  matchEffectPrefab: {fileID: 0}
-  winEffectPrefab: {fileID: 0}
+  matchEffectPrefab: {fileID: 6692425029678406486, guid: 471088445f741e64c82f447ba7849c30, type: 3}
+  winEffectPrefab: {fileID: 8422728507146640409, guid: 6b573e0cc051d6849aba90ea8131e486, type: 3}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
