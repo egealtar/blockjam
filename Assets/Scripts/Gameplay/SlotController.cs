@@ -45,11 +45,32 @@ namespace BlockJam.Gameplay
             _onUnitPopped = onUnitPopped;
         }
 
-        /// <summary>World position of slot index i.</summary>
+        /// <summary>
+        /// Positions the whole slot bar in front of the board, based on the current level's
+        /// depth, so it is always ahead of every unit regardless of board size (responsive).
+        /// Called by GameController after each level is built.
+        /// </summary>
+        public void PositionForBoard(int boardHeight, float frontGap)
+        {
+            // Board is centered on origin and extends +/- (height/2 * cellSpacing) along Z.
+            // The camera looks from the +Z side, so "front" (nearest the player) is +Z.
+            float halfDepth = (boardHeight * 0.5f) * _config.CellSpacing;
+            float z = halfDepth + frontGap; // +Z = toward the camera / front
+            transform.position = new Vector3(0f, transform.position.y, z);
+        }
+
+        /// <summary>
+        /// World position of slot index i, horizontally centered so the bar of SlotCount slots
+        /// is symmetric around x = 0.
+        /// </summary>
         public Vector3 GetSlotWorldPos(int index)
         {
-            Vector3 basePos = slotOrigin != null ? slotOrigin.position : transform.position;
-            return basePos + Vector3.right * (_config.SlotSpacing * index);
+            float spacing = _config.SlotSpacing;
+            float totalWidth = (_config.SlotCount - 1) * spacing;
+            float startX = -totalWidth * 0.5f;
+            float y = slotOrigin != null ? slotOrigin.position.y : transform.position.y;
+            float z = transform.position.z;
+            return new Vector3(startX + spacing * index, y, z);
         }
 
         /// <summary>

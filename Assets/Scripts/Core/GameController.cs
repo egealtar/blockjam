@@ -84,6 +84,7 @@ namespace BlockJam.Core
             }
 
             slots.ClearImmediate();
+            slots.PositionForBoard(level.Height, frontGap: 10f);
             board.BuildLevel(level);
             if (cameraFitter != null) cameraFitter.Fit(level, config);
             if (ui != null) ui.SetLevelNumber(level.LevelNumber);

@@ -51,6 +51,7 @@ namespace BlockJam.Gameplay
             _height = level.Height;
             _grid = new Cell[_width, _height];
             _aliveUnits = 0;
+            _reservedSlots = 0;
             InteractionLocked = false;
 
             // Center the grid on boardRoot.
@@ -82,44 +83,51 @@ namespace BlockJam.Gameplay
             RefreshSelectable();
         }
 
+        // Slots reserved by units that are currently flying toward the bar but haven't landed.
+        // Counting these prevents overflow when the player taps rapidly (multiple in flight).
+        private int _reservedSlots;
+
         /// <summary>Raycast-driven entry point: called by InputRouter with a tapped unit.</summary>
         public void OnUnitTapped(Unit unit)
         {
-            if (InteractionLocked || unit == null) return;
-            if (_slots.IsBusy) return;            // ignore taps while the bar is resolving
-            if (unit.IsBoxed) return;
+            if (InteractionLocked || unit == null) return;     // locked only on win/lose
+            if (unit.IsBoxed) { unit.ShakeBlocked(); return; }
 
             int x = unit.CellX, y = unit.CellY;
             if (!BlockChecker.IsSelectable(_grid, _width, _height, x, y))
             {
-                // Blocked (no free side): give negative feedback so the player understands.
+                // Blocked (no free side): negative feedback.
                 unit.ShakeBlocked();
                 return;
             }
 
-            // Pre-flight lose check: if the bar is already full, a new unit can only be
-            // accepted if it will immediately complete a match. We let SlotController decide,
-            // but we must still allow the unit to fly in to keep the rule honest.
-            // Remove from the board grid now so neighbours become selectable.
+            // Capacity check counting both settled units AND units already in flight.
+            // If the bar would overflow with no possible match, refuse this tap (shake).
+            if (_slots.Count + _reservedSlots >= _config.SlotCount)
+            {
+                unit.ShakeBlocked();
+                return;
+            }
+
+            // Remove from the board grid immediately so neighbours become selectable
+            // and rapid follow-up taps see the updated board.
             Cell cell = _grid[x, y];
             cell.Occupant = null;
             _aliveUnits--;
             unit.SetCell(-1, -1);
+            _reservedSlots++;
 
             int insertIndex = _slots.GetInsertIndexFor(unit.Color);
             Vector3 slotPos = _slots.GetSlotWorldPos(insertIndex);
 
-            // Lock interaction during the throw to avoid double-taps racing the resolver.
-            InteractionLocked = true;
             RefreshSelectable();
 
             unit.JumpToSlot(slotPos, _config.UnitToSlotDuration, 1.2f, () =>
             {
+                _reservedSlots = Mathf.Max(0, _reservedSlots - 1);
                 _slots.Accept(unit, insertIndex, this,
                     onResolved: () =>
                     {
-                        InteractionLocked = false;
-                        // Breaking boxes when their neighbours clear can be handled here if desired.
                         TryBreakAdjacentBoxes();
                         RefreshSelectable();
                         CheckWin();
