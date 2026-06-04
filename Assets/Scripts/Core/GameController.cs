@@ -40,12 +40,9 @@ namespace BlockJam.Core
 
         private void Start()
         {
-            Debug.Log("GC: Start basladi");
-            Debug.Log("GC: config=" + (config!=null) + " palette=" + (palette!=null) + " board=" + (board!=null) + " slots=" + (slots!=null) + " unitPool=" + (unitPool!=null) + " vfxPool=" + (vfxPool!=null) + " input=" + (input!=null) + " ui=" + (ui!=null) + " camFitter=" + (cameraFitter!=null) + " gameCam=" + (gameCamera!=null));
             // --- 1. Pools (the only place Instantiate happens, at prewarm time) ---
             unitPool.Setup(config.UnitPrewarm);
             vfxPool.Setup(config.VfxPrewarm);
-            Debug.Log("GC: pools kuruldu");
 
             // --- 2. Save: resume on the stored level ---
             _save = new SaveSystem();
@@ -62,9 +59,7 @@ namespace BlockJam.Core
             ui.OnRetryPressed += HandleRetry;
 
             // --- 4. Go ---
-            Debug.Log("GC: LoadCurrentLevel cagriliyor");
             LoadCurrentLevel();
-            Debug.Log("GC: Start bitti");
         }
 
         private void OnDestroy()
@@ -88,14 +83,10 @@ namespace BlockJam.Core
                 return;
             }
 
-            Debug.Log("GC: level ADI=" + level.name + " | InstanceID=" + level.GetInstanceID() + " | unit sayisi=" + level.CountUnits() + " | WxH=" + level.Width + "x" + level.Height + " | currentLevelIndex=" + _currentLevelIndex);
-            Debug.Log("GC: GameConfig Levels uzunlugu=" + (config.Levels != null ? config.Levels.Length : -1));
-            if (config.Levels != null) for (int li=0; li<config.Levels.Length; li++) Debug.Log("GC: Element[" + li + "]=" + (config.Levels[li]!=null ? config.Levels[li].name + " (units=" + config.Levels[li].CountUnits() + ", " + config.Levels[li].Width + "x" + config.Levels[li].Height + ")" : "NULL"));
             slots.ClearImmediate();
             board.BuildLevel(level);
-            Debug.Log("GC: BuildLevel cagrildi");
-            cameraFitter.Fit(level, config);
-            ui.SetLevelNumber(level.LevelNumber);
+            if (cameraFitter != null) cameraFitter.Fit(level, config);
+            if (ui != null) ui.SetLevelNumber(level.LevelNumber);
 
             input.SetEnabled(true);
             _fsm.Set(GameState.Playing);
@@ -107,13 +98,14 @@ namespace BlockJam.Core
             _fsm.Set(GameState.Won);
             input.SetEnabled(false);
 
-            if (gameCamera != null) vfxPool.PlayWin(gameCamera.transform.position + gameCamera.transform.forward * 6f);
+            if (vfxPool != null && gameCamera != null)
+                vfxPool.PlayWin(gameCamera.transform.position + gameCamera.transform.forward * 6f);
 
             // Advance + persist so a restart resumes on the next level.
             _currentLevelIndex = config.ClampLevelIndex(_currentLevelIndex + 1);
             _save.SaveLevelProgress(_currentLevelIndex);
 
-            ui.ShowWin();
+            if (ui != null) ui.ShowWin();
         }
 
         private void HandleLose()
@@ -121,7 +113,7 @@ namespace BlockJam.Core
             if (!_fsm.IsPlaying) return;
             _fsm.Set(GameState.Lost);
             input.SetEnabled(false);
-            ui.ShowFail();
+            if (ui != null) ui.ShowFail();
         }
 
         // Win screen -> next level (already advanced + saved in HandleWin).

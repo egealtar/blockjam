@@ -12,23 +12,23 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 99668800a7171134c95686da4d3bdd78, type: 3}
   m_Name: Level_05
   m_EditorClassIdentifier: 
-  LevelNumber: 1
+  LevelNumber: 5
   Width: 5
   Height: 5
   cells:
-  - Occupied: 0
+  - Occupied: 1
     Color: 0
     InBox: 0
-  - Occupied: 0
-    Color: 0
+  - Occupied: 1
+    Color: 1
     InBox: 0
-  - Occupied: 0
-    Color: 0
+  - Occupied: 1
+    Color: 1
     InBox: 0
-  - Occupied: 0
-    Color: 0
+  - Occupied: 1
+    Color: 1
     InBox: 0
-  - Occupied: 0
+  - Occupied: 1
     Color: 0
     InBox: 0
   - Occupied: 0

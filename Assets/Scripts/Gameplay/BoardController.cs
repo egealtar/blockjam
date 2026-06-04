@@ -140,8 +140,9 @@ namespace BlockJam.Gameplay
         }
 
         /// <summary>
-        /// Optional polish: when the board changes, any boxed unit that now has a free side
-        /// reveals (breaks). This makes boxes feel reactive rather than static.
+        /// When the board changes, a boxed unit breaks open ONLY if one of its orthogonal
+        /// neighbours that EXISTS on the board is now empty (i.e. a real adjacent unit was taken).
+        /// Board edges do NOT count, so a boxed unit on the rim doesn't break for free at start.
         /// </summary>
         private void TryBreakAdjacentBoxes()
         {
@@ -150,10 +151,30 @@ namespace BlockJam.Gameplay
             for (int x = 0; x < _width; x++)
             {
                 Cell c = _grid[x, y];
-                if (c == null || c.IsEmpty) continue;
-                if (c.Occupant.IsBoxed && BlockChecker.HasFreeSide(_grid, _width, _height, x, y))
+                if (c == null || c.IsEmpty || !c.Occupant.IsBoxed) continue;
+                if (HasEmptyExistingNeighbour(x, y))
                     c.Occupant.BreakBox();
             }
+        }
+
+        /// <summary>
+        /// True if at least one orthogonal neighbour cell EXISTS on the board (was part of the
+        /// layout) but is currently empty - meaning a real adjacent unit has been cleared.
+        /// </summary>
+        private bool HasEmptyExistingNeighbour(int x, int y)
+        {
+            int[] dx = { 1, -1, 0, 0 };
+            int[] dy = { 0, 0, 1, -1 };
+            for (int i = 0; i < 4; i++)
+            {
+                int nx = x + dx[i];
+                int ny = y + dy[i];
+                if (nx < 0 || nx >= _width || ny < 0 || ny >= _height) continue; // edge: ignore
+                Cell n = _grid[nx, ny];
+                if (n == null) continue;
+                if (n.Exists && n.IsEmpty) return true; // a real neighbour was cleared
+            }
+            return false;
         }
 
         /// <summary>

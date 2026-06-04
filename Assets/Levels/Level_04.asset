@@ -12,82 +12,79 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 99668800a7171134c95686da4d3bdd78, type: 3}
   m_Name: Level_04
   m_EditorClassIdentifier: 
-  LevelNumber: 1
-  Width: 5
-  Height: 5
+  LevelNumber: 4
+  Width: 6
+  Height: 4
   cells:
-  - Occupied: 0
+  - Occupied: 1
+    Color: 3
+    InBox: 1
+  - Occupied: 1
+    Color: 0
+    InBox: 1
+  - Occupied: 1
+    Color: 3
+    InBox: 1
+  - Occupied: 1
+    Color: 0
+    InBox: 1
+  - Occupied: 1
+    Color: 5
+    InBox: 1
+  - Occupied: 1
+    Color: 0
+    InBox: 1
+  - Occupied: 1
+    Color: 2
+    InBox: 1
+  - Occupied: 1
+    Color: 2
+    InBox: 1
+  - Occupied: 1
+    Color: 1
+    InBox: 1
+  - Occupied: 1
+    Color: 1
+    InBox: 1
+  - Occupied: 1
+    Color: 5
+    InBox: 1
+  - Occupied: 1
+    Color: 5
+    InBox: 1
+  - Occupied: 1
+    Color: 2
+    InBox: 1
+  - Occupied: 1
+    Color: 3
+    InBox: 1
+  - Occupied: 1
+    Color: 1
+    InBox: 1
+  - Occupied: 1
+    Color: 0
+    InBox: 1
+  - Occupied: 1
+    Color: 4
+    InBox: 1
+  - Occupied: 1
+    Color: 3
+    InBox: 1
+  - Occupied: 1
     Color: 0
     InBox: 0
-  - Occupied: 0
-    Color: 0
+  - Occupied: 1
+    Color: 3
     InBox: 0
-  - Occupied: 0
-    Color: 0
+  - Occupied: 1
+    Color: 4
     InBox: 0
-  - Occupied: 0
-    Color: 0
+  - Occupied: 1
+    Color: 4
     InBox: 0
-  - Occupied: 0
-    Color: 0
+  - Occupied: 1
+    Color: 3
     InBox: 0
-  - Occupied: 0
-    Color: 0
-    InBox: 0
-  - Occupied: 0
-    Color: 0
-    InBox: 0
-  - Occupied: 0
-    Color: 0
-    InBox: 0
-  - Occupied: 0
-    Color: 0
-    InBox: 0
-  - Occupied: 0
-    Color: 0
-    InBox: 0
-  - Occupied: 0
-    Color: 0
-    InBox: 0
-  - Occupied: 0
-    Color: 0
-    InBox: 0
-  - Occupied: 0
-    Color: 0
-    InBox: 0
-  - Occupied: 0
-    Color: 0
-    InBox: 0
-  - Occupied: 0
-    Color: 0
-    InBox: 0
-  - Occupied: 0
-    Color: 0
-    InBox: 0
-  - Occupied: 0
-    Color: 0
-    InBox: 0
-  - Occupied: 0
-    Color: 0
-    InBox: 0
-  - Occupied: 0
-    Color: 0
-    InBox: 0
-  - Occupied: 0
-    Color: 0
-    InBox: 0
-  - Occupied: 0
-    Color: 0
-    InBox: 0
-  - Occupied: 0
-    Color: 0
-    InBox: 0
-  - Occupied: 0
-    Color: 0
-    InBox: 0
-  - Occupied: 0
-    Color: 0
-    InBox: 0
-  - Occupied: 0
+  - Occupied: 1
     Color: 0
     InBox: 0
