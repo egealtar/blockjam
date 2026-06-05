@@ -29,6 +29,7 @@ namespace BlockJam.Core
         [SerializeField] private SlotController slots;
         [SerializeField] private UnitPool unitPool;
         [SerializeField] private VfxPool vfxPool;
+        [SerializeField] private ObstaclePool obstaclePool;
         [SerializeField] private InputRouter input;
         [SerializeField] private CameraFitter cameraFitter;
         [SerializeField] private UIManager ui;
@@ -43,6 +44,7 @@ namespace BlockJam.Core
             // --- 1. Pools (the only place Instantiate happens, at prewarm time) ---
             unitPool.Setup(config.UnitPrewarm);
             vfxPool.Setup(config.VfxPrewarm);
+            if (obstaclePool != null) obstaclePool.Setup(config.UnitPrewarm);
 
             // --- 2. Save: resume on the stored level ---
             _save = new SaveSystem();
@@ -50,7 +52,7 @@ namespace BlockJam.Core
 
             // --- 3. Wire subsystems with explicit dependencies ---
             slots.Setup(config, vfxPool, onUnitPopped: board.ReturnUnitToPool);
-            board.Setup(config, palette, unitPool, slots,
+            board.Setup(config, palette, unitPool, slots, obstaclePool,
                         onBoardCleared: HandleWin,
                         onLose: HandleLose);
             input.Setup(board, gameCamera);
@@ -84,9 +86,11 @@ namespace BlockJam.Core
             }
 
             slots.ClearImmediate();
-            slots.PositionForBoard(level.Height, frontGap: 10f);
             board.BuildLevel(level);
-            if (cameraFitter != null) cameraFitter.Fit(level, config);
+            // Position slot bar + camera AFTER the board is built, using the PADDED grid size
+            // (level size plus the obstacle frame) so they frame the full enclosed area.
+            slots.PositionForBoard(board.GridHeight, frontGap: 3f);
+            if (cameraFitter != null) cameraFitter.Fit(board.GridWidth, board.GridHeight, config);
             if (ui != null) ui.SetLevelNumber(level.LevelNumber);
 
             input.SetEnabled(true);

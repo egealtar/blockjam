@@ -43,12 +43,12 @@ namespace BlockJam.Core
         private void Reset() => cam = GetComponent<Camera>();
         private void Awake() { if (cam == null) cam = GetComponent<Camera>(); }
 
-        /// <summary>Call after a level is built so framing matches its grid size.</summary>
-        public void Fit(LevelData level, GameConfig config)
+        /// <summary>Call after a level is built so framing matches its (padded) grid size.</summary>
+        public void Fit(int gridWidth, int gridHeight, GameConfig config)
         {
-            if (level == null || config == null) return;
-            _boardWidth = level.Width * config.CellSpacing + padding * 2f;
-            _boardDepth = level.Height * config.CellSpacing + padding * 2f;
+            if (config == null) return;
+            _boardWidth = gridWidth * config.CellSpacing + padding * 2f;
+            _boardDepth = gridHeight * config.CellSpacing + padding * 2f;
             ApplyFit();
         }
 

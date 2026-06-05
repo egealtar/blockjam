@@ -22,7 +22,23 @@ namespace BlockJam.Gameplay
         /// <summary>True if this position is part of the board layout at all (not a hole).</summary>
         public bool Exists;
 
-        public bool IsEmpty => Occupant == null;
+        /// <summary>
+        /// True if a permanent obstacle ("wall box") occupies this cell. Unlike the breakable
+        /// box that wraps a unit, an obstacle never disappears: it is auto-placed on every cell
+        /// that has no jam and is not part of the open front corridor, so it both visually shows
+        /// the closed area (like the grass border in Block Jam) and acts as a hard wall that
+        /// pathfinding must route around. A cell with an obstacle can never hold a unit.
+        /// </summary>
+        public bool IsObstacle;
+
+        /// <summary>The pooled visual representing the obstacle on this cell, if any.</summary>
+        public PooledObstacle ObstacleView;
+
+        /// <summary>Empty for movement purposes: no unit AND no permanent obstacle.</summary>
+        public bool IsEmpty => Occupant == null && !IsObstacle;
+
+        /// <summary>A unit cannot move into or through this cell (it holds a unit or an obstacle).</summary>
+        public bool IsBlocking => Occupant != null || IsObstacle;
 
         public Cell(int x, int y, Vector3 worldPos, bool exists)
         {

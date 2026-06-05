@@ -32,6 +32,7 @@ namespace BlockJam.Gameplay
         [SerializeField] private string idleState = "Idle";
         [SerializeField] private string jumpState = "Jump";
         [SerializeField] private string dieState = "Die";
+        [SerializeField] private string runState = "Run";
 
         // --- runtime state ---
         public UnitColor Color { get; private set; }
@@ -110,6 +111,55 @@ namespace BlockJam.Gameplay
         public void PlayIdle() { if (animator != null && animator.runtimeAnimatorController != null) animator.Play(idleState); }
         public void PlayJump() { if (animator != null && animator.runtimeAnimatorController != null) animator.Play(jumpState); }
         public void PlayDie()  { if (animator != null && animator.runtimeAnimatorController != null) animator.Play(dieState); }
+        public void PlayRun()  { if (animator != null && animator.runtimeAnimatorController != null) animator.Play(runState); }
+
+        /// <summary>
+        /// Walks the unit along a path of world positions (cell centers leading to the open front
+        /// edge), facing its movement direction, then continues to the final slot position.
+        /// This is the Block Jam "walk out through empty cells" behaviour.
+        /// </summary>
+        public void WalkPathThenSlot(System.Collections.Generic.List<Vector3> pathWorld, Vector3 slotTarget,
+                                     float stepDuration, float slotDuration, System.Action onArrive)
+        {
+            SetTappable(false);
+            if (_moveRoutine != null) StopCoroutine(_moveRoutine);
+            _moveRoutine = StartCoroutine(WalkRoutine(pathWorld, slotTarget, stepDuration, slotDuration, onArrive));
+        }
+
+        private IEnumerator WalkRoutine(System.Collections.Generic.List<Vector3> pathWorld, Vector3 slotTarget,
+                                        float stepDuration, float slotDuration, System.Action onArrive)
+        {
+            PlayRun();
+
+            // Walk cell by cell along the board to the exit, facing the direction of travel.
+            if (pathWorld != null)
+            {
+                foreach (var p in pathWorld)
+                {
+                    Vector3 flatTarget = new Vector3(p.x, transform.position.y, p.z);
+                    FaceTowards(flatTarget);
+                    yield return Tweener.Move(transform, flatTarget, stepDuration, Easing.Linear);
+                }
+            }
+
+            // Then hop into the slot (short arc) and settle.
+            PlayJump();
+            FaceTowards(slotTarget);
+            yield return Tweener.JumpTo(transform, slotTarget, 1.0f, slotDuration, Easing.InOutQuad);
+
+            transform.rotation = Quaternion.identity;
+            PlayIdle();
+            _moveRoutine = null;
+            onArrive?.Invoke();
+        }
+
+        private void FaceTowards(Vector3 worldPos)
+        {
+            Vector3 dir = worldPos - transform.position;
+            dir.y = 0f;
+            if (dir.sqrMagnitude > 0.0001f)
+                transform.rotation = Quaternion.LookRotation(dir.normalized, Vector3.up);
+        }
 
         /// <summary>
         /// Flies the unit to a target position with a jump arc (the "throw into slot" feel),
