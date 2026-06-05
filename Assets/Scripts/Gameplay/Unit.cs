@@ -44,7 +44,11 @@ namespace BlockJam.Gameplay
         private Collider _collider;
         private Coroutine _moveRoutine;
 
-        private static readonly int ColorProp = Shader.PropertyToID("_BaseColor");
+        // We tint via MaterialPropertyBlock. Different shaders expose the color under different
+        // property names: URP/Lit uses "_BaseColor", the SimpleToony shader uses "_Color". We set
+        // both so the unit tints correctly no matter which material the body renderer uses.
+        private static readonly int BaseColorProp = Shader.PropertyToID("_BaseColor");
+        private static readonly int ColorProp = Shader.PropertyToID("_Color");
 
         private void Awake()
         {
@@ -75,6 +79,7 @@ namespace BlockJam.Gameplay
             if (bodyRenderer != null)
             {
                 bodyRenderer.GetPropertyBlock(_mpb);
+                _mpb.SetColor(BaseColorProp, displayColor);
                 _mpb.SetColor(ColorProp, displayColor);
                 bodyRenderer.SetPropertyBlock(_mpb);
             }
