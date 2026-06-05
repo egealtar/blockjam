@@ -72,7 +72,8 @@ PrefabInstance:
       propertyPath: m_IsActive
       value: 1
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
+    m_RemovedComponents:
+    - {fileID: 5866666021909216657, guid: 89f75f2c20291451590d7d47e898270b, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects:
     - targetCorrespondingSourceObject: {fileID: -8679921383154817045, guid: 89f75f2c20291451590d7d47e898270b, type: 3}
@@ -194,6 +195,7 @@ MonoBehaviour:
   idleState: Idle
   jumpState: Jump
   dieState: Die
+  runState: Run
 --- !u!1001 &8288324814794022087
 PrefabInstance:
   m_ObjectHideFlags: 0

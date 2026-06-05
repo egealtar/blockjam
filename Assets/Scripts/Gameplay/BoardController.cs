@@ -76,7 +76,8 @@ namespace BlockJam.Gameplay
             float offsetZ = (_height - 1) * 0.5f * spacing;
             Vector3 origin = boardRoot != null ? boardRoot.position : Vector3.zero;
 
-            // First create every cell (positions only).
+            // First create every cell (positions only). The floor is a single large ground plane
+            // placed in the scene (covers the whole board + screen), so no per-cell tiles here.
             for (int y = 0; y < _height; y++)
             {
                 for (int x = 0; x < _width; x++)
