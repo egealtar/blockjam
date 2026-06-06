@@ -24,6 +24,7 @@ namespace BlockJam.EditorTools
     {
         private LevelData _level;
         private ColorPalette _palette;
+        private GameConfig _config;
 
         private enum PaintMode { SetColor, ToggleEmpty, ToggleBox }
         private PaintMode _mode = PaintMode.SetColor;
@@ -65,10 +66,28 @@ namespace BlockJam.EditorTools
             EditorGUI.BeginChangeCheck();
             _level = (LevelData)EditorGUILayout.ObjectField("Level Data", _level, typeof(LevelData), false);
             _palette = (ColorPalette)EditorGUILayout.ObjectField("Color Palette", _palette, typeof(ColorPalette), false);
+            _config = (GameConfig)EditorGUILayout.ObjectField("Game Config", _config, typeof(GameConfig), false);
             if (EditorGUI.EndChangeCheck() && _level != null) _level.EnsureSize();
 
-            if (GUILayout.Button("Create New Level Asset..."))
-                CreateNewLevel();
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                if (GUILayout.Button("Create New Level Asset..."))
+                    CreateNewLevel();
+
+                // Adds the level currently being edited to the GameConfig's level list, so a
+                // freshly created level is immediately playable without manual dragging.
+                using (new EditorGUI.DisabledScope(_config == null || _level == null))
+                {
+                    if (GUILayout.Button("Add Current Level to Config"))
+                        AddLevelToConfig(_level);
+                }
+            }
+
+            if (_config == null)
+                EditorGUILayout.HelpBox(
+                    "Assign a Game Config to enable one-click 'create & add', so new levels become " +
+                    "playable immediately (otherwise add the level to GameConfig.Levels manually).",
+                    MessageType.None);
         }
 
         private void CreateNewLevel()
@@ -83,6 +102,32 @@ namespace BlockJam.EditorTools
             AssetDatabase.SaveAssets();
             _level = asset;
             Selection.activeObject = asset;
+
+            // If a config is assigned, append the new level right away so it's playable at once.
+            if (_config != null) AddLevelToConfig(asset);
+        }
+
+        /// <summary>Appends a level to the GameConfig's Levels array (if not already present) and
+        /// persists the change, so the level designer can create a level and play it immediately.</summary>
+        private void AddLevelToConfig(LevelData level)
+        {
+            if (_config == null || level == null) return;
+
+            var list = new System.Collections.Generic.List<LevelData>();
+            if (_config.Levels != null) list.AddRange(_config.Levels);
+            if (list.Contains(level))
+            {
+                EditorUtility.DisplayDialog("Already Added",
+                    $"'{level.name}' is already in the Game Config.", "OK");
+                return;
+            }
+
+            Undo.RecordObject(_config, "Add Level to Config");
+            list.Add(level);
+            _config.Levels = list.ToArray();
+            EditorUtility.SetDirty(_config);
+            AssetDatabase.SaveAssets();
+            Debug.Log($"[LevelEditor] Added '{level.name}' to {_config.name} (now {list.Count} levels).");
         }
 
         private void DrawSizeControls()

@@ -223,13 +223,17 @@ namespace BlockJam.Gameplay
         }
 
         /// <summary>Instantly place settled units at their grouped slot positions (no tween), used
-        /// right before evaluating a fresh landing so positions/indices are consistent.</summary>
+        /// right before evaluating a fresh landing so positions/indices are consistent. Units that
+        /// are mid-pop still visually occupy their slots, so settled units are placed AFTER them
+        /// (offset by the popping count) - otherwise a freshly landed jam would stack on top of a
+        /// trio that is still animating its pop.</summary>
         private void RepositionImmediate()
         {
+            int offset = _poppingUnits.Count;
             for (int i = 0; i < _units.Count; i++)
             {
                 _units[i].transform.SetParent(transform, worldPositionStays: true);
-                _units[i].transform.position = GetSlotWorldPos(i);
+                _units[i].transform.position = GetSlotWorldPos(offset + i);
             }
         }
 

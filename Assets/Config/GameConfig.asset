@@ -18,16 +18,17 @@ MonoBehaviour:
   - {fileID: 11400000, guid: d4b68f482245daf4a8f83388c6b6cf15, type: 2}
   - {fileID: 11400000, guid: 1a89e353deff75d4db0ceaf81a1ab290, type: 2}
   - {fileID: 11400000, guid: d6c54f0f5b32e974281549e6b3fc6285, type: 2}
+  - {fileID: 11400000, guid: 5b6033cf5995df144a2357d8380477e5, type: 2}
   SlotCount: 7
   MatchSize: 3
   CellSpacing: 12
   SlotSpacing: 8
   UnitToSlotDuration: 0.15
-  SlotCompactDuration: 0.15
+  SlotCompactDuration: 0.3
   MatchPopDelay: 0
   MatchPopDuration: 0.1
   MatchJumpHeight: 15
   MatchJumpDuration: 0.4
-  MatchGatherDuration: 0.1
+  MatchGatherDuration: 0.3
   UnitPrewarm: 32
   VfxPrewarm: 8
