@@ -106,7 +106,34 @@ namespace BlockJam.Core
             cam.transform.rotation = Quaternion.Euler(tiltAngle, 180f, 0f);
             Vector3 framedPoint = boardCenter + Vector3.forward * lookOffsetForward;
             Vector3 back = -(cam.transform.forward); // points toward +Z
-            cam.transform.position = framedPoint + back * distance;
+            // Add any active shake offset on top of the framed position so a fail-shake is visible
+            // even though we reframe every frame (otherwise the fit would overwrite the shake).
+            cam.transform.position = framedPoint + back * distance + _shakeOffset;
+        }
+
+        // ---- Shake support (used on fail). The offset is layered on top of the fit each frame. ----
+        private Vector3 _shakeOffset;
+        private Coroutine _shakeRoutine;
+
+        public void Shake(float duration, float magnitude)
+        {
+            if (_shakeRoutine != null) StopCoroutine(_shakeRoutine);
+            _shakeRoutine = StartCoroutine(ShakeRoutine(duration, magnitude));
+        }
+
+        private System.Collections.IEnumerator ShakeRoutine(float duration, float magnitude)
+        {
+            float t = 0f;
+            while (t < duration)
+            {
+                t += Time.deltaTime;
+                float damper = 1f - Mathf.Clamp01(t / duration);
+                _shakeOffset = new Vector3(Random.value * 2f - 1f, Random.value * 2f - 1f, 0f)
+                               * magnitude * damper;
+                yield return null;
+            }
+            _shakeOffset = Vector3.zero;
+            _shakeRoutine = null;
         }
     }
 }

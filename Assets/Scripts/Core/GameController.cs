@@ -59,6 +59,7 @@ namespace BlockJam.Core
 
             ui.OnContinuePressed += HandleContinue;
             ui.OnRetryPressed += HandleRetry;
+            ui.OnFailPresented += HandleFailPresented;
 
             // --- 4. Go ---
             LoadCurrentLevel();
@@ -70,6 +71,7 @@ namespace BlockJam.Core
             {
                 ui.OnContinuePressed -= HandleContinue;
                 ui.OnRetryPressed -= HandleRetry;
+                ui.OnFailPresented -= HandleFailPresented;
             }
         }
 
@@ -119,6 +121,19 @@ namespace BlockJam.Core
             _fsm.Set(GameState.Lost);
             input.SetEnabled(false);
             if (ui != null) ui.ShowFail();
+        }
+
+        /// <summary>
+        /// Fired by the UI the moment the fail splash appears: punches up the moment with a short
+        /// camera shake and a burst of VFX in front of the camera, so losing feels impactful.
+        /// </summary>
+        private void HandleFailPresented()
+        {
+            if (vfxPool != null && gameCamera != null)
+                vfxPool.PlayBoxBreak(gameCamera.transform.position + gameCamera.transform.forward * 6f);
+            // Shake through the fitter so it layers on top of the per-frame reframe (a direct
+            // transform shake would be overwritten by CameraFitter every frame).
+            if (cameraFitter != null) cameraFitter.Shake(0.35f, 3f);
         }
 
         // Win screen -> next level (already advanced + saved in HandleWin).

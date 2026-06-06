@@ -273,9 +273,15 @@ namespace BlockJam.Gameplay
                 pathWorld.Add(CellToWorld(pc.x, pc.y));
 
             UnitColor flownColor = unit.Color;
+            // Spawn a dust puff under the unit at each footstep while it runs (movement juice).
+            unit.OnFootstep = footPos =>
+            {
+                if (_vfxPool != null) _vfxPool.PlayDust(footPos, unit.DisplayColor);
+            };
             unit.WalkPathThenSlot(pathWorld, slotPos, _config.UnitToSlotDuration * 0.5f,
                                   _config.UnitToSlotDuration, () =>
             {
+                unit.OnFootstep = null;
                 _flyingColors.Remove(flownColor);
                 _slots.Accept(unit, insertIndex, this,
                     onResolved: () =>

@@ -19,6 +19,20 @@ namespace BlockJam.Gameplay
 
         public void Bind(System.Action<PooledVfx> onDone) => _onDone = onDone;
 
+        /// <summary>Tints the effect to a given color (used so the running dust matches the unit).
+        /// Sets the particle system's start color; child systems are tinted too.</summary>
+        public void SetColor(Color color)
+        {
+            if (particles == null) return;
+            var main = particles.main;
+            main.startColor = color;
+            foreach (var child in GetComponentsInChildren<ParticleSystem>())
+            {
+                var m = child.main;
+                m.startColor = color;
+            }
+        }
+
         public void OnSpawned()
         {
             if (particles != null)

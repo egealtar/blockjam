@@ -86,12 +86,12 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 89f75f2c20291451590d7d47e898270b, type: 3}
       insertIndex: -1
       addedObject: {fileID: 6220705176438670932}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 89f75f2c20291451590d7d47e898270b, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 47183395508794120}
     - targetCorrespondingSourceObject: {fileID: 4895406925957067987, guid: 89f75f2c20291451590d7d47e898270b, type: 3}
       insertIndex: -1
       addedObject: {fileID: 7625670471639586055}
-    - targetCorrespondingSourceObject: {fileID: 4895406925957067987, guid: 89f75f2c20291451590d7d47e898270b, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 7811206777480101242}
   m_SourcePrefab: {fileID: 100100000, guid: 89f75f2c20291451590d7d47e898270b, type: 3}
 --- !u!1 &2597258407805604113 stripped
 GameObject:
@@ -119,28 +119,6 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 13.110021, y: 11.358259, z: 8.822035}
   m_Center: {x: -0.00000026233238, y: 5.666396, z: 0.17849848}
---- !u!95 &7811206777480101242
-Animator:
-  serializedVersion: 7
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2597258407805604113}
-  m_Enabled: 1
-  m_Avatar: {fileID: 9000000, guid: 89f75f2c20291451590d7d47e898270b, type: 3}
-  m_Controller: {fileID: 9100000, guid: 126673110e09b154eb61aff0a02cf823, type: 2}
-  m_CullingMode: 0
-  m_UpdateMode: 0
-  m_ApplyRootMotion: 0
-  m_LinearVelocityBlending: 0
-  m_StabilizeFeet: 0
-  m_AnimatePhysics: 0
-  m_WarningMessage: 
-  m_HasTransformHierarchy: 1
-  m_AllowConstantClipSamplingOptimization: 1
-  m_KeepAnimatorStateOnDisable: 0
-  m_WriteDefaultValuesOnDisable: 0
 --- !u!137 &3379049372582048527 stripped
 SkinnedMeshRenderer:
   m_CorrespondingSourceObject: {fileID: -3963060009926109491, guid: 89f75f2c20291451590d7d47e898270b, type: 3}
@@ -190,12 +168,35 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   bodyRenderer: {fileID: 3379049372582048527}
-  animator: {fileID: 7811206777480101242}
+  animator: {fileID: 47183395508794120}
   boxVisual: {fileID: 9207436061416317334}
   idleState: Idle
   jumpState: Jump
   dieState: Die
   runState: Run
+  slotTiltX: -25
+--- !u!95 &47183395508794120
+Animator:
+  serializedVersion: 7
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7720792342839629971}
+  m_Enabled: 1
+  m_Avatar: {fileID: 9000000, guid: 89f75f2c20291451590d7d47e898270b, type: 3}
+  m_Controller: {fileID: 9100000, guid: 126673110e09b154eb61aff0a02cf823, type: 2}
+  m_CullingMode: 0
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_StabilizeFeet: 0
+  m_AnimatePhysics: 0
+  m_WarningMessage: 
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+  m_KeepAnimatorStateOnDisable: 0
+  m_WriteDefaultValuesOnDisable: 0
 --- !u!1001 &8288324814794022087
 PrefabInstance:
   m_ObjectHideFlags: 0

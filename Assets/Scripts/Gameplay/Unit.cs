@@ -45,6 +45,10 @@ namespace BlockJam.Gameplay
         public int CellY { get; private set; }
         public bool IsBoxed { get; private set; }
 
+        /// <summary>The actual RGB tint shown for this unit's color (from the palette). Reused for
+        /// matching color effects like the running dust puff.</summary>
+        public Color DisplayColor { get; private set; }
+
         private MaterialPropertyBlock _mpb;
         private Collider _collider;
         private Coroutine _moveRoutine;
@@ -59,28 +63,6 @@ namespace BlockJam.Gameplay
         {
             _collider = GetComponent<Collider>();
             _mpb = new MaterialPropertyBlock();
-
-            // --- ANIMATOR DIAGNOSTICS ---
-            if (animator == null)
-                Debug.LogError("[ANIM] Unit script'inin Animator alani NULL (Inspector'da bagli degil!)");
-            else
-            {
-                Debug.Log($"[ANIM] Animator var: {animator.name}");
-                if (animator.runtimeAnimatorController == null)
-                    Debug.LogError("[ANIM] Animator'in Controller'i NULL (UnitAnimator bagli degil!)");
-                else
-                {
-                    Debug.Log($"[ANIM] Controller: {animator.runtimeAnimatorController.name}");
-                    var clips = animator.runtimeAnimatorController.animationClips;
-                    string clipNames = "";
-                    foreach (var c in clips) clipNames += c.name + ", ";
-                    Debug.Log($"[ANIM] Controller'daki clip'ler: {clipNames}");
-                }
-                if (animator.avatar == null)
-                    Debug.LogWarning("[ANIM] Animator'in Avatar'i NULL");
-                else
-                    Debug.Log($"[ANIM] Avatar: {animator.avatar.name}, isValid={animator.avatar.isValid}, isHuman={animator.avatar.isHuman}");
-            }
         }
 
         public void OnSpawned()
@@ -107,6 +89,7 @@ namespace BlockJam.Gameplay
             CellX = cellX;
             CellY = cellY;
             IsBoxed = boxed;
+            DisplayColor = displayColor;
 
             // Stand upright on the board (slot tilt is applied only on landing in a slot).
             transform.rotation = Quaternion.identity;
@@ -156,7 +139,7 @@ namespace BlockJam.Gameplay
             SetTappable(true);
         }
 
-        // ---- animation helpers (with diagnostics) ----
+        // ---- animation helpers ----
         public void PlayIdle() => PlayState(idleState);
         public void PlayJump() => PlayState(jumpState);
         public void PlayDie()  => PlayState(dieState);
@@ -164,12 +147,11 @@ namespace BlockJam.Gameplay
 
         private void PlayState(string stateName)
         {
-            if (animator == null) { Debug.LogError($"[ANIM] PlayState('{stateName}') ama animator NULL"); return; }
-            if (animator.runtimeAnimatorController == null) { Debug.LogError($"[ANIM] PlayState('{stateName}') ama Controller NULL"); return; }
-
-            bool hasState = animator.HasState(0, Animator.StringToHash(stateName));
-            Debug.Log($"[ANIM] PlayState('{stateName}') cagrildi. Layer0'da bu state var mi: {hasState}. Animator aktif mi: {animator.gameObject.activeInHierarchy}, enabled: {animator.enabled}");
-            animator.Play(stateName);
+            if (animator == null || animator.runtimeAnimatorController == null) return;
+            // Only play if the controller actually has this state, so a missing clip (e.g. Run not
+            // yet added) is a silent no-op rather than a warning every frame.
+            if (animator.HasState(0, Animator.StringToHash(stateName)))
+                animator.Play(stateName);
         }
 
         /// <summary>
@@ -185,6 +167,12 @@ namespace BlockJam.Gameplay
             _moveRoutine = StartCoroutine(WalkRoutine(pathWorld, slotTarget, stepDuration, slotDuration, onArrive));
         }
 
+        /// <summary>
+        /// Raised at each footstep while the unit runs along the board, passing the foot world
+        /// position. BoardController subscribes to spawn a little dust puff (movement juice).
+        /// </summary>
+        public System.Action<Vector3> OnFootstep;
+
         private IEnumerator WalkRoutine(System.Collections.Generic.List<Vector3> pathWorld, Vector3 slotTarget,
                                         float stepDuration, float slotDuration, System.Action onArrive)
         {
@@ -197,6 +185,8 @@ namespace BlockJam.Gameplay
                 {
                     Vector3 flatTarget = new Vector3(p.x, transform.position.y, p.z);
                     FaceTowards(flatTarget);
+                    // Dust puff at the foot as each step begins.
+                    OnFootstep?.Invoke(transform.position);
                     yield return Tweener.Move(transform, flatTarget, stepDuration, Easing.Linear);
                 }
             }
