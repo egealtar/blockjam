@@ -5,10 +5,11 @@ namespace BlockJam.Gameplay
 {
     /// <summary>
     /// Block Jam-style selection rule. The board is walled on the back and both sides; only the
-    /// FRONT edge is open (toward the camera / the player). A unit can be selected only if there
-    /// is a path of empty cells from it to the front edge, moving left / right / forward (never
-    /// backward, since the back is a wall). If such a path exists the unit "walks out" along it;
-    /// if it is sealed in by other units it is blocked and cannot be taken.
+    /// FRONT edge is open (toward the camera / the player). A unit can be selected if there is a
+    /// path of empty cells from it to the FRONT edge. Movement during pathfinding is allowed in
+    /// ALL four directions (including backward/sideways) - the unit may weave around through any
+    /// open cells to reach the exit - but it can only actually LEAVE the board from the front edge.
+    /// If no such path exists the unit is sealed in and cannot be taken.
     ///
     /// Grid convention (matches BoardController): y maps to world Z, and the FRONT edge is the
     /// highest y (y == height-1), because the camera looks from the +Z side. A unit reaches the
@@ -18,10 +19,10 @@ namespace BlockJam.Gameplay
     /// </summary>
     public static class BlockChecker
     {
-        // Allowed step directions: +Y (forward, toward the open front), +X and -X (sideways).
-        // -Y (backward) is NOT allowed because the back is a wall.
-        private static readonly int[] DX = { 0, 1, -1 };
-        private static readonly int[] DY = { 1, 0, 0 };
+        // Pathfinding may move through empty cells in ALL four directions. Only the EXIT is
+        // restricted to the front edge; weaving backward/sideways to get there is allowed.
+        private static readonly int[] DX = { 0, 0, 1, -1 };
+        private static readonly int[] DY = { 1, -1, 0, 0 };
 
         /// <summary>
         /// True if the unit at (x,y) can reach the open front edge through empty cells.
@@ -64,7 +65,7 @@ namespace BlockJam.Gameplay
                     break;
                 }
 
-                for (int i = 0; i < 3; i++)
+                for (int i = 0; i < 4; i++)
                 {
                     int nx = cur.x + DX[i];
                     int ny = cur.y + DY[i];

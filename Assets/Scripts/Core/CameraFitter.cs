@@ -33,8 +33,12 @@ namespace BlockJam.Core
         [Tooltip("Fraction of screen height reserved at the bottom for the slot bar / HUD.")]
         [Range(0f, 0.6f)] [SerializeField] private float bottomReserve = 0.28f;
 
-        [Tooltip("Push the framed point downward in world space so the board sits higher on screen, leaving room for the slot bar below.")]
+        [Tooltip("Push the framed point forward in world space so the board sits higher on screen, leaving room for the slot bar below.")]
         [SerializeField] private float lookOffsetForward = 0f;
+
+        [Tooltip("Safety multiplier on board width when fitting. >1 pulls the camera back a bit more " +
+                 "on tall/narrow screens so the left/right corner jams never fall off-screen. 1.15 = 15% margin.")]
+        [Range(1f, 1.6f)] [SerializeField] private float widthSafety = 1.15f;
 
         private int _lastW, _lastH;
         private float _boardWidth = 10f;   // X extent (world)
@@ -52,10 +56,13 @@ namespace BlockJam.Core
             ApplyFit();
         }
 
-        private void Update()
+        private void LateUpdate()
         {
-            if (Screen.width != _lastW || Screen.height != _lastH)
-                ApplyFit();
+            // Re-fit every frame: ResetAspect + reframe is cheap, and doing it in LateUpdate (after
+            // any layout/resolution change this frame) guarantees the camera aspect always matches
+            // the live viewport - so taps stay accurate in Free Aspect and at any window size,
+            // without needing a manual resize to "wake up" the camera.
+            ApplyFit();
         }
 
         private void ApplyFit()
@@ -71,7 +78,9 @@ namespace BlockJam.Core
             // bounding radius derived from width (horizontal) and depth (vertical-ish) extents.
             float tiltRad = tiltAngle * Mathf.Deg2Rad;
             float verticalExtent = _boardDepth * Mathf.Cos(tiltRad) * 0.5f + _boardDepth * Mathf.Sin(tiltRad) * 0.25f;
-            float horizontalExtent = _boardWidth * 0.5f;
+            // Horizontal: include a safety margin so the board's left/right edges (the corner jams)
+            // never fall off-screen on tall/narrow aspects, where width is the limiting dimension.
+            float horizontalExtent = _boardWidth * 0.5f * widthSafety;
 
             // Reserve bottom band for slot bar by inflating the vertical requirement.
             float usableVertical = Mathf.Max(0.2f, 1f - bottomReserve);

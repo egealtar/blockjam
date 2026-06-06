@@ -783,7 +783,7 @@ MonoBehaviour:
   vfxPool: {fileID: 2122500102}
   obstaclePool: {fileID: 968090763}
   input: {fileID: 1381877376}
-  cameraFitter: {fileID: 0}
+  cameraFitter: {fileID: 1381877375}
   ui: {fileID: 2040973315}
   gameCamera: {fileID: 1381877372}
 --- !u!4 &642530561
@@ -1189,7 +1189,7 @@ Camera:
   m_ShutterSpeed: 0.005
   m_Aperture: 16
   m_FocusDistance: 10
-  m_FocalLength: 50
+  m_FocalLength: 18.836226
   m_BladeCount: 5
   m_Curvature: {x: 2, y: 11}
   m_BarrelClipping: 0.25
@@ -1204,7 +1204,7 @@ Camera:
     height: 1
   near clip plane: 0.3
   far clip plane: 1000
-  field of view: 80
+  field of view: 50
   orthographic: 0
   orthographic size: 5
   m_Depth: -1
@@ -1288,17 +1288,18 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1381877370}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 3d62f61100b8e734bbc2a1c3cbaf0f4d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   cam: {fileID: 1381877372}
-  tiltAngle: 50
+  tiltAngle: 65
   boardCenter: {x: 0, y: 0, z: 0}
-  padding: 1.5
-  bottomReserve: 0.22
-  lookOffsetForward: 0
+  padding: -13
+  bottomReserve: 0.407
+  lookOffsetForward: 17
+  widthSafety: 1.6
 --- !u!114 &1381877376
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1312,7 +1313,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   gameCamera: {fileID: 1381877372}
-  rayDistance: 100
 --- !u!1 &1401922954
 GameObject:
   m_ObjectHideFlags: 0
@@ -1443,7 +1443,7 @@ Transform:
   m_GameObject: {fileID: 1420878256}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 30}
+  m_LocalPosition: {x: 0, y: 0, z: 40}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -2132,6 +2132,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   matchEffectPrefab: {fileID: 6692425029678406486, guid: 471088445f741e64c82f447ba7849c30, type: 3}
   winEffectPrefab: {fileID: 8422728507146640409, guid: 6b573e0cc051d6849aba90ea8131e486, type: 3}
+  boxBreakEffectPrefab: {fileID: 8517599575006905468, guid: c2f28a236b0696a4f90a994422019577, type: 3}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

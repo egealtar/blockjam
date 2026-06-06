@@ -9,7 +9,6 @@ namespace BlockJam.Core
     public class InputRouter : MonoBehaviour
     {
         [SerializeField] private Camera gameCamera;
-        [SerializeField] private float rayDistance = 1000f;
 
         private BoardController _board;
         private bool _enabled = true;
@@ -24,26 +23,22 @@ namespace BlockJam.Core
 
         private void Update()
         {
-            if (_board == null) { Debug.Log("BOARD NULL - board baglanmamis"); return; }
-            if (!_enabled) return;
+            if (_board == null || !_enabled) return;
 
             Camera cam = gameCamera != null ? gameCamera : Camera.main;
-            if (cam == null) { Debug.Log("KAMERA NULL"); return; }
+            if (cam == null) return;
 
             if (TryGetPressPosition(out Vector2 screenPos))
             {
-                Debug.Log("TIKLAMA: " + screenPos + " | ekran: " + Screen.width + "x" + Screen.height);
                 Ray ray = cam.ScreenPointToRay(screenPos);
-                Debug.DrawRay(ray.origin, ray.direction * rayDistance, Color.red, 3f);
-
-                if (Physics.Raycast(ray, out RaycastHit hit, rayDistance))
+                // Unbounded ray length: the responsive camera can sit very far from the board on
+                // wide/odd aspects, and a fixed max distance (e.g. 1000) made the ray stop short so
+                // taps silently missed. Mathf.Infinity guarantees the ray always reaches the board.
+                if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity))
                 {
-                    Debug.Log("RAYCAST DEGDI: " + hit.collider.name);
                     Unit unit = hit.collider.GetComponentInParent<Unit>();
-                    if (unit != null) { Debug.Log("UNIT BULUNDU, board'a gonderiliyor"); _board.OnUnitTapped(unit); }
-                    else Debug.Log("Collidera degdi ama Unit yok: " + hit.collider.name);
+                    if (unit != null) _board.OnUnitTapped(unit);
                 }
-                else Debug.Log("RAYCAST HICBIR SEYE DEGMEDI");
             }
         }
 

@@ -34,6 +34,11 @@ namespace BlockJam.Gameplay
         [SerializeField] private string dieState = "Die";
         [SerializeField] private string runState = "Run";
 
+        [Header("Slot Pose")]
+        [Tooltip("X rotation (degrees) the unit settles at once it lands in a slot, tilting it " +
+                 "back slightly so its face is more visible to the camera. -25 = a gentle lean.")]
+        [SerializeField] private float slotTiltX = -25f;
+
         // --- runtime state ---
         public UnitColor Color { get; private set; }
         public int CellX { get; private set; }
@@ -54,11 +59,37 @@ namespace BlockJam.Gameplay
         {
             _collider = GetComponent<Collider>();
             _mpb = new MaterialPropertyBlock();
+
+            // --- ANIMATOR DIAGNOSTICS ---
+            if (animator == null)
+                Debug.LogError("[ANIM] Unit script'inin Animator alani NULL (Inspector'da bagli degil!)");
+            else
+            {
+                Debug.Log($"[ANIM] Animator var: {animator.name}");
+                if (animator.runtimeAnimatorController == null)
+                    Debug.LogError("[ANIM] Animator'in Controller'i NULL (UnitAnimator bagli degil!)");
+                else
+                {
+                    Debug.Log($"[ANIM] Controller: {animator.runtimeAnimatorController.name}");
+                    var clips = animator.runtimeAnimatorController.animationClips;
+                    string clipNames = "";
+                    foreach (var c in clips) clipNames += c.name + ", ";
+                    Debug.Log($"[ANIM] Controller'daki clip'ler: {clipNames}");
+                }
+                if (animator.avatar == null)
+                    Debug.LogWarning("[ANIM] Animator'in Avatar'i NULL");
+                else
+                    Debug.Log($"[ANIM] Avatar: {animator.avatar.name}, isValid={animator.avatar.isValid}, isHuman={animator.avatar.isHuman}");
+            }
         }
 
         public void OnSpawned()
         {
             transform.localScale = Vector3.one;
+            // Reset orientation: a unit returning from the pool may have been left tilted from its
+            // time in the slot bar (slotTiltX). On the board it must stand upright; the slot tilt is
+            // re-applied only when it lands in a slot again.
+            transform.rotation = Quaternion.identity;
             SetTappable(true);
         }
 
@@ -66,6 +97,7 @@ namespace BlockJam.Gameplay
         {
             if (_moveRoutine != null) { StopCoroutine(_moveRoutine); _moveRoutine = null; }
             transform.localScale = Vector3.one;
+            transform.rotation = Quaternion.identity;
         }
 
         /// <summary>Configures the unit's identity and look. Call right after Get() from the pool.</summary>
@@ -75,6 +107,9 @@ namespace BlockJam.Gameplay
             CellX = cellX;
             CellY = cellY;
             IsBoxed = boxed;
+
+            // Stand upright on the board (slot tilt is applied only on landing in a slot).
+            transform.rotation = Quaternion.identity;
 
             if (bodyRenderer != null)
             {
@@ -98,9 +133,18 @@ namespace BlockJam.Gameplay
         }
 
         /// <summary>Enables/disables the collider so rapid taps on invalid units are ignored cheaply.</summary>
+        /// <summary>
+        /// False only while the unit is flying/walking to a slot (so it can't be tapped twice).
+        /// The collider stays always enabled, so a freshly-opened neighbour is instantly tappable
+        /// with no physics-sync delay; whether a tap actually moves the unit is decided by
+        /// pathfinding in BoardController.OnUnitTapped (which also drives the shake feedback).
+        /// </summary>
+        public bool IsTappable { get; private set; } = true;
+
         public void SetTappable(bool tappable)
         {
-            if (_collider != null) _collider.enabled = tappable;
+            IsTappable = tappable;
+            if (_collider != null && !_collider.enabled) _collider.enabled = true;
         }
 
         /// <summary>Breaks the box (e.g. an adjacent match cleared next to it), making the unit usable.</summary>
@@ -112,11 +156,21 @@ namespace BlockJam.Gameplay
             SetTappable(true);
         }
 
-        // ---- animation helpers ----
-        public void PlayIdle() { if (animator != null && animator.runtimeAnimatorController != null) animator.Play(idleState); }
-        public void PlayJump() { if (animator != null && animator.runtimeAnimatorController != null) animator.Play(jumpState); }
-        public void PlayDie()  { if (animator != null && animator.runtimeAnimatorController != null) animator.Play(dieState); }
-        public void PlayRun()  { if (animator != null && animator.runtimeAnimatorController != null) animator.Play(runState); }
+        // ---- animation helpers (with diagnostics) ----
+        public void PlayIdle() => PlayState(idleState);
+        public void PlayJump() => PlayState(jumpState);
+        public void PlayDie()  => PlayState(dieState);
+        public void PlayRun()  => PlayState(runState);
+
+        private void PlayState(string stateName)
+        {
+            if (animator == null) { Debug.LogError($"[ANIM] PlayState('{stateName}') ama animator NULL"); return; }
+            if (animator.runtimeAnimatorController == null) { Debug.LogError($"[ANIM] PlayState('{stateName}') ama Controller NULL"); return; }
+
+            bool hasState = animator.HasState(0, Animator.StringToHash(stateName));
+            Debug.Log($"[ANIM] PlayState('{stateName}') cagrildi. Layer0'da bu state var mi: {hasState}. Animator aktif mi: {animator.gameObject.activeInHierarchy}, enabled: {animator.enabled}");
+            animator.Play(stateName);
+        }
 
         /// <summary>
         /// Walks the unit along a path of world positions (cell centers leading to the open front
@@ -152,7 +206,8 @@ namespace BlockJam.Gameplay
             FaceTowards(slotTarget);
             yield return Tweener.JumpTo(transform, slotTarget, 1.0f, slotDuration, Easing.InOutQuad);
 
-            transform.rotation = Quaternion.identity;
+            // Settle facing the camera with a slight backward tilt so the face is more visible.
+            transform.rotation = Quaternion.Euler(slotTiltX, 0f, 0f);
             PlayIdle();
             _moveRoutine = null;
             onArrive?.Invoke();

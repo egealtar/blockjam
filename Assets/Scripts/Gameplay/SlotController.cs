@@ -38,6 +38,17 @@ namespace BlockJam.Gameplay
         public bool IsFull => _units.Count >= _config.SlotCount;
         public bool IsBusy => _busy;
 
+        /// <summary>Adds the count of each color currently settled in the bar into the given dict.</summary>
+        public void AddColorCounts(System.Collections.Generic.Dictionary<UnitColor, int> counts)
+        {
+            for (int i = 0; i < _units.Count; i++)
+            {
+                var col = _units[i].Color;
+                counts.TryGetValue(col, out int n);
+                counts[col] = n + 1;
+            }
+        }
+
         public void Setup(GameConfig config, VfxPool vfx, System.Action<Unit> onUnitPopped)
         {
             _config = config;
@@ -89,13 +100,15 @@ namespace BlockJam.Gameplay
         }
 
         /// <summary>
-        /// Inserts a unit that has just landed at the given index, then resolves any match.
-        /// Returns via coroutine; sets _busy while animating. After resolution, if the bar is
-        /// still full, signals game-over through onFull.
+        /// Inserts a unit that has just landed, computing its grouped position AT LANDING TIME
+        /// (right next to the last unit of the same color). Computing it here - rather than when
+        /// the unit was tapped - is what keeps colors correctly grouped when several units fly in
+        /// concurrently during rapid tapping; each one slots in against the bar's current state.
         /// </summary>
-        public void Accept(Unit unit, int insertIndex, MonoBehaviour coroutineHost,
+        public void Accept(Unit unit, int insertIndexIgnored, MonoBehaviour coroutineHost,
                            System.Action onResolved, System.Action onFullNoMatch)
         {
+            int insertIndex = GetInsertIndexFor(unit.Color);
             insertIndex = Mathf.Clamp(insertIndex, 0, _units.Count);
             _units.Insert(insertIndex, unit);
             coroutineHost.StartCoroutine(ResolveRoutine(onResolved, onFullNoMatch));

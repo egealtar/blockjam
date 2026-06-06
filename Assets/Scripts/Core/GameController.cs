@@ -52,7 +52,7 @@ namespace BlockJam.Core
 
             // --- 3. Wire subsystems with explicit dependencies ---
             slots.Setup(config, vfxPool, onUnitPopped: board.ReturnUnitToPool);
-            board.Setup(config, palette, unitPool, slots, obstaclePool,
+            board.Setup(config, palette, unitPool, slots, obstaclePool, vfxPool,
                         onBoardCleared: HandleWin,
                         onLose: HandleLose);
             input.Setup(board, gameCamera);
@@ -89,7 +89,7 @@ namespace BlockJam.Core
             board.BuildLevel(level);
             // Position slot bar + camera AFTER the board is built, using the PADDED grid size
             // (level size plus the obstacle frame) so they frame the full enclosed area.
-            slots.PositionForBoard(board.GridHeight, frontGap: 3f);
+            slots.PositionForBoard(board.GridHeight, frontGap: 10f);
             if (cameraFitter != null) cameraFitter.Fit(board.GridWidth, board.GridHeight, config);
             if (ui != null) ui.SetLevelNumber(level.LevelNumber);
 

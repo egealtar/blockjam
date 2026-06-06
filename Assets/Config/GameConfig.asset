@@ -22,9 +22,9 @@ MonoBehaviour:
   MatchSize: 3
   CellSpacing: 12
   SlotSpacing: 8
-  UnitToSlotDuration: 0.28
+  UnitToSlotDuration: 0.15
   SlotCompactDuration: 0.15
-  MatchPopDelay: 0.06
-  MatchPopDuration: 0.2
+  MatchPopDelay: 0.01
+  MatchPopDuration: 0.12
   UnitPrewarm: 32
   VfxPrewarm: 8
