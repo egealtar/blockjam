@@ -3,21 +3,23 @@ using System.Collections.Generic;
 namespace BlockJam.Gameplay
 {
     /// <summary>
-    /// Stateless helper that scans the (grouped) slot list for the first run of
-    /// <paramref name="matchSize"/> or more consecutive same-colored units.
+    /// Stateless helper that scans the (grouped) slot list for matches.
     ///
-    /// Because SlotController keeps same colors grouped, a simple linear scan for a run is
-    /// both correct and O(n). We pop exactly matchSize at a time (not the whole run) so that,
-    /// e.g., 4 reds become "pop 3, keep 1" - matching Block Jam behaviour where only a triple clears.
+    /// Because SlotController keeps same colors grouped, a simple linear scan for runs is both
+    /// correct and O(n). Each run of >= matchSize same-colored units yields one group of exactly
+    /// matchSize units (e.g. 4 reds -> one group of 3, keeping 1), matching Block Jam where only a
+    /// triple clears. Returning ALL groups at once lets the caller pop multiple matches in parallel.
     /// </summary>
     public static class MatchResolver
     {
-        public static bool TryFindMatch(IReadOnlyList<Unit> units, int matchSize,
-                                        out int startIndex, out int length)
+        /// <summary>
+        /// Returns every match group currently present (each exactly matchSize units), as lists of
+        /// unit references so the caller can remove them without index invalidation. Empty if none.
+        /// </summary>
+        public static List<List<Unit>> FindAllMatches(IReadOnlyList<Unit> units, int matchSize)
         {
-            startIndex = -1;
-            length = 0;
-            if (units == null || units.Count < matchSize) return false;
+            var groups = new List<List<Unit>>();
+            if (units == null || units.Count < matchSize) return groups;
 
             int runStart = 0;
             for (int i = 1; i <= units.Count; i++)
@@ -28,14 +30,15 @@ namespace BlockJam.Gameplay
                     int runLen = i - runStart;
                     if (runLen >= matchSize)
                     {
-                        startIndex = runStart;
-                        length = matchSize; // pop exactly one match group
-                        return true;
+                        var group = new List<Unit>(matchSize);
+                        for (int k = runStart; k < runStart + matchSize; k++)
+                            group.Add(units[k]);
+                        groups.Add(group);
                     }
                     runStart = i;
                 }
             }
-            return false;
+            return groups;
         }
     }
 }

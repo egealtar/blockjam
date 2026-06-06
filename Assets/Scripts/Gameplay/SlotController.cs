@@ -165,18 +165,35 @@ namespace BlockJam.Gameplay
             // Snap everyone to their grouped positions first.
             yield return RepositionAll(_config.SlotCompactDuration);
 
-            // Resolve all matches that may cascade.
+            // Resolve matches in waves. Within a wave, ALL current matches pop simultaneously
+            // (parallel) - so two separate trios don't wait on each other. After a wave clears and
+            // the bar compacts, we re-scan; any new match formed by compaction pops in the next
+            // wave (cascade).
             bool matchedAny = true;
             while (matchedAny)
             {
                 matchedAny = false;
 
-                if (MatchResolver.TryFindMatch(_units, _config.MatchSize, out int start, out int length))
+                // Collect every match group present right now (as unit references, so removing
+                // them doesn't invalidate the others' indices).
+                var groups = MatchResolver.FindAllMatches(_units, _config.MatchSize);
+                if (groups.Count > 0)
                 {
-                    yield return new WaitForSeconds(_config.MatchPopDelay);
-                    yield return PopRange(start, length);
-                    yield return RepositionAll(_config.SlotCompactDuration);
                     matchedAny = true;
+
+                    // Remove them all from the logical list up front, mark them popping.
+                    foreach (var group in groups)
+                        foreach (var u in group) { _units.Remove(u); _poppingUnits.Add(u); }
+
+                    yield return new WaitForSeconds(_config.MatchPopDelay);
+
+                    // Run every group's jump+gather+pop in parallel; wait for all to finish.
+                    int running = groups.Count;
+                    foreach (var group in groups)
+                        StartCoroutine(PopGroup(group, () => running--));
+                    while (running > 0) yield return null;
+
+                    yield return RepositionAll(_config.SlotCompactDuration);
                 }
             }
 
@@ -187,27 +204,22 @@ namespace BlockJam.Gameplay
             else onResolved?.Invoke();
         }
 
-        private IEnumerator PopRange(int start, int length)
+        /// <summary>
+        /// Plays one matched group's full sequence: the units leap up together, gather in mid-air,
+        /// then pop. The units are already removed from _units and added to _poppingUnits by the
+        /// caller (so capacity stays correct); here we only animate and, when done, free their
+        /// popping slots. Multiple groups run this in parallel for simultaneous matching.
+        /// </summary>
+        private IEnumerator PopGroup(List<Unit> popping, System.Action onDone)
         {
-            var popping = new List<Unit>();
-            for (int i = start; i < start + length; i++) popping.Add(_units[i]);
-
-            // Remove from the logical match list up front so match-finding and repositioning are
-            // correct, BUT track them in _poppingUnits so capacity still counts them while their
-            // jump+pop plays. This keeps rapid tapping responsive (we never block input) while
-            // preventing a freshly tapped unit from landing on a slot that is visually still
-            // occupied by a popping unit.
-            _units.RemoveRange(start, length);
-            _poppingUnits.AddRange(popping);
-
-            // Block Jam feel: the matched trio hops together first, then pops.
+            // Block Jam feel: the matched trio leaps up, gathers together in mid-air, and pops at
+            // the peak (they never come back down). First, everyone jumps straight up and holds.
             int jumping = popping.Count;
             foreach (var u in popping)
                 u.StartCoroutine(JumpThen(u, () => jumping--));
             while (jumping > 0) yield return null;
 
-            // Gather to the center of the trio, so the three merge into one spot before popping
-            // (instead of vanishing in place) - a more satisfying, Block-Jam-like match.
+            // Center point, raised to the jump apex so they merge in the air.
             Vector3 center = Vector3.zero;
             foreach (var u in popping) center += u.transform.position;
             center /= popping.Count;
@@ -231,6 +243,8 @@ namespace BlockJam.Gameplay
             // Wait until all popped units finished their pop animation, then free their capacity.
             while (remaining > 0) yield return null;
             foreach (var u in popping) _poppingUnits.Remove(u);
+
+            onDone?.Invoke();
         }
 
         private IEnumerator JumpThen(Unit u, System.Action onDone)
