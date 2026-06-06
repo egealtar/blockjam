@@ -40,6 +40,15 @@ namespace BlockJam.Data
         [Tooltip("Duration of the match pop/scale-out before units return to the pool.")]
         public float MatchPopDuration = 0.20f;
 
+        [Tooltip("How high the matched trio hops just before popping (Block Jam celebratory jump).")]
+        public float MatchJumpHeight = 0.6f;
+
+        [Tooltip("Duration of the pre-pop match hop (up and back down).")]
+        public float MatchJumpDuration = 0.3f;
+
+        [Tooltip("Duration of the matched trio gathering to their center point just before popping.")]
+        public float MatchGatherDuration = 0.15f;
+
         [Header("Pooling")]
         [Tooltip("How many units to pre-warm in the pool at startup.")]
         [Min(0)] public int UnitPrewarm = 32;

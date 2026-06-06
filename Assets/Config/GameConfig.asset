@@ -24,7 +24,10 @@ MonoBehaviour:
   SlotSpacing: 8
   UnitToSlotDuration: 0.15
   SlotCompactDuration: 0.15
-  MatchPopDelay: 0.01
+  MatchPopDelay: 0
   MatchPopDuration: 0.12
+  MatchJumpHeight: 15
+  MatchJumpDuration: 0.3
+  MatchGatherDuration: 0.11
   UnitPrewarm: 32
   VfxPrewarm: 8

@@ -288,6 +288,21 @@ namespace BlockJam.Gameplay
             onArrive?.Invoke();
         }
 
+        /// <summary>
+        /// A celebratory hop played by each unit of a matched trio just before they pop, mirroring
+        /// Block Jam 3D where the three same-colored units jump together at the moment of matching.
+        /// Plays the Jump animation and arcs up then back down.
+        /// </summary>
+        public IEnumerator MatchJump(float jumpHeight, float duration)
+        {
+            PlayJump();
+            Vector3 start = transform.position;
+            Vector3 apex = start + Vector3.up * jumpHeight;
+            float half = Mathf.Max(0.01f, duration * 0.5f);
+            yield return Tweener.Move(transform, apex, half, Easing.OutQuad);
+            yield return Tweener.Move(transform, start, half, Easing.InQuad);
+        }
+
         /// <summary>Plays the pop (die anim + scale-out) then invokes onDone so the owner can pool it.</summary>
         public void PlayPop(float duration, System.Action onDone)
         {

@@ -25,25 +25,44 @@ namespace BlockJam.Gameplay
         [Tooltip("Left-most slot anchor. Slots extend to the right by SlotSpacing.")]
         [SerializeField] private Transform slotOrigin;
 
+        [Header("Slot Visuals")]
+        [Tooltip("Optional visual placed under each of the fixed slots, so the player can see how " +
+                 "many slots there are and how full the bar is. One is spawned per slot at startup.")]
+        [SerializeField] private GameObject slotCellPrefab;
+
+        private readonly List<GameObject> _slotCells = new List<GameObject>();
+
         private GameConfig _config;
         private VfxPool _vfx;
 
         // Ordered list of units currently in the bar (left to right).
         private readonly List<Unit> _units = new List<Unit>();
 
+        // Units that have matched and are mid jump+pop animation. They no longer participate in
+        // matching or layout, but still count toward capacity so incoming units don't fill the
+        // slots they're vacating until the animation finishes.
+        private readonly List<Unit> _poppingUnits = new List<Unit>();
+
         private bool _busy;            // true while an animation sequence is resolving
         private System.Action<Unit> _onUnitPopped; // callback so the board can return units to pool
 
-        public int Count => _units.Count;
-        public bool IsFull => _units.Count >= _config.SlotCount;
+        public int Count => _units.Count + _poppingUnits.Count;
+        public bool IsFull => Count >= _config.SlotCount;
         public bool IsBusy => _busy;
 
-        /// <summary>Adds the count of each color currently settled in the bar into the given dict.</summary>
+        /// <summary>Adds the count of each color currently settled in the bar into the given dict.
+        /// Units mid-pop are included so capacity checks treat their slots as still occupied.</summary>
         public void AddColorCounts(System.Collections.Generic.Dictionary<UnitColor, int> counts)
         {
-            for (int i = 0; i < _units.Count; i++)
+            AddColorsFrom(_units, counts);
+            AddColorsFrom(_poppingUnits, counts);
+        }
+
+        private static void AddColorsFrom(List<Unit> list, System.Collections.Generic.Dictionary<UnitColor, int> counts)
+        {
+            for (int i = 0; i < list.Count; i++)
             {
-                var col = _units[i].Color;
+                var col = list[i].Color;
                 counts.TryGetValue(col, out int n);
                 counts[col] = n + 1;
             }
@@ -68,6 +87,31 @@ namespace BlockJam.Gameplay
             float halfDepth = (boardHeight * 0.5f) * _config.CellSpacing;
             float z = halfDepth + frontGap; // +Z = toward the camera / front
             transform.position = new Vector3(0f, transform.position.y, z);
+
+            BuildSlotCells();
+        }
+
+        /// <summary>
+        /// Spawns one decorative cell under each of the fixed slots (once), so the 7 slots are
+        /// visible to the player. Positions are taken from GetSlotWorldPos so they always line up
+        /// with where units actually land, at any board size.
+        /// </summary>
+        private void BuildSlotCells()
+        {
+            if (slotCellPrefab == null) return;
+
+            // Create on first call; afterwards just reposition (board size may change per level).
+            while (_slotCells.Count < _config.SlotCount)
+            {
+                var cell = Instantiate(slotCellPrefab, transform);
+                _slotCells.Add(cell);
+            }
+            for (int i = 0; i < _slotCells.Count; i++)
+            {
+                bool used = i < _config.SlotCount;
+                _slotCells[i].SetActive(used);
+                if (used) _slotCells[i].transform.position = GetSlotWorldPos(i);
+            }
         }
 
         /// <summary>
@@ -148,8 +192,30 @@ namespace BlockJam.Gameplay
             var popping = new List<Unit>();
             for (int i = start; i < start + length; i++) popping.Add(_units[i]);
 
-            // Remove from the logical list up front so repositioning math is correct.
+            // Remove from the logical match list up front so match-finding and repositioning are
+            // correct, BUT track them in _poppingUnits so capacity still counts them while their
+            // jump+pop plays. This keeps rapid tapping responsive (we never block input) while
+            // preventing a freshly tapped unit from landing on a slot that is visually still
+            // occupied by a popping unit.
             _units.RemoveRange(start, length);
+            _poppingUnits.AddRange(popping);
+
+            // Block Jam feel: the matched trio hops together first, then pops.
+            int jumping = popping.Count;
+            foreach (var u in popping)
+                u.StartCoroutine(JumpThen(u, () => jumping--));
+            while (jumping > 0) yield return null;
+
+            // Gather to the center of the trio, so the three merge into one spot before popping
+            // (instead of vanishing in place) - a more satisfying, Block-Jam-like match.
+            Vector3 center = Vector3.zero;
+            foreach (var u in popping) center += u.transform.position;
+            center /= popping.Count;
+
+            int gathering = popping.Count;
+            foreach (var u in popping)
+                u.SlideTo(center, _config.MatchGatherDuration, () => gathering--);
+            while (gathering > 0) yield return null;
 
             int remaining = popping.Count;
             foreach (var u in popping)
@@ -162,8 +228,15 @@ namespace BlockJam.Gameplay
                 });
             }
 
-            // Wait until all popped units finished their pop animation.
+            // Wait until all popped units finished their pop animation, then free their capacity.
             while (remaining > 0) yield return null;
+            foreach (var u in popping) _poppingUnits.Remove(u);
+        }
+
+        private IEnumerator JumpThen(Unit u, System.Action onDone)
+        {
+            yield return u.MatchJump(_config.MatchJumpHeight, _config.MatchJumpDuration);
+            onDone?.Invoke();
         }
 
         private IEnumerator RepositionAll(float duration)
