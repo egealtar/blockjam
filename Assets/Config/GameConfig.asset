@@ -27,7 +27,7 @@ MonoBehaviour:
   MatchPopDelay: 0
   MatchPopDuration: 0.1
   MatchJumpHeight: 15
-  MatchJumpDuration: 0.3
-  MatchGatherDuration: 0.2
+  MatchJumpDuration: 0.4
+  MatchGatherDuration: 0.1
   UnitPrewarm: 32
   VfxPrewarm: 8

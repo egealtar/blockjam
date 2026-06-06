@@ -13,12 +13,12 @@ MonoBehaviour:
   m_Name: Level_05
   m_EditorClassIdentifier: 
   LevelNumber: 5
-  Width: 5
+  Width: 6
   Height: 5
   cells:
   - Occupied: 1
     Color: 0
-    InBox: 0
+    InBox: 1
   - Occupied: 1
     Color: 1
     InBox: 0
@@ -31,53 +31,65 @@ MonoBehaviour:
   - Occupied: 1
     Color: 0
     InBox: 0
-  - Occupied: 0
+  - Occupied: 1
     Color: 0
     InBox: 0
   - Occupied: 1
-    Color: 3
+    Color: 5
+    InBox: 1
+  - Occupied: 1
+    Color: 1
+    InBox: 1
+  - Occupied: 1
+    Color: 5
+    InBox: 1
+  - Occupied: 1
+    Color: 5
+    InBox: 1
+  - Occupied: 1
+    Color: 0
+    InBox: 0
+  - Occupied: 1
+    Color: 0
     InBox: 0
   - Occupied: 1
     Color: 3
     InBox: 1
   - Occupied: 1
-    Color: 3
+    Color: 1
+    InBox: 1
+  - Occupied: 1
+    Color: 0
+    InBox: 1
+  - Occupied: 1
+    Color: 0
+    InBox: 1
+  - Occupied: 1
+    Color: 0
     InBox: 0
-  - Occupied: 0
+  - Occupied: 1
     Color: 0
     InBox: 0
   - Occupied: 1
     Color: 3
     InBox: 1
+  - Occupied: 1
+    Color: 1
+    InBox: 0
+  - Occupied: 1
+    Color: 5
+    InBox: 0
+  - Occupied: 1
+    Color: 5
+    InBox: 0
+  - Occupied: 1
+    Color: 5
+    InBox: 0
   - Occupied: 1
     Color: 4
-    InBox: 1
-  - Occupied: 1
-    Color: 4
-    InBox: 1
-  - Occupied: 1
-    Color: 4
-    InBox: 1
-  - Occupied: 1
-    Color: 3
-    InBox: 1
-  - Occupied: 1
-    Color: 3
     InBox: 0
   - Occupied: 1
     Color: 3
-    InBox: 0
-  - Occupied: 1
-    Color: 0
-    InBox: 0
-  - Occupied: 1
-    Color: 3
-    InBox: 0
-  - Occupied: 1
-    Color: 3
-    InBox: 0
-  - Occupied: 0
-    Color: 0
     InBox: 0
   - Occupied: 1
     Color: 2
@@ -88,6 +100,9 @@ MonoBehaviour:
   - Occupied: 1
     Color: 2
     InBox: 0
-  - Occupied: 0
-    Color: 0
+  - Occupied: 1
+    Color: 4
+    InBox: 0
+  - Occupied: 1
+    Color: 4
     InBox: 0

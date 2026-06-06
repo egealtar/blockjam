@@ -1,41 +1,57 @@
 using System.Collections.Generic;
+using BlockJam.Data;
 
 namespace BlockJam.Gameplay
 {
     /// <summary>
-    /// Stateless helper that scans the (grouped) slot list for matches.
+    /// Stateless helper for finding matches in the (grouped) slot list.
     ///
-    /// Because SlotController keeps same colors grouped, a simple linear scan for runs is both
-    /// correct and O(n). Each run of >= matchSize same-colored units yields one group of exactly
-    /// matchSize units (e.g. 4 reds -> one group of 3, keeping 1), matching Block Jam where only a
-    /// triple clears. Returning ALL groups at once lets the caller pop multiple matches in parallel.
+    /// SlotController keeps same-colored units adjacent, so a match is simply a run of >= matchSize
+    /// consecutive units of one color. We return exactly matchSize units for a run (e.g. 4 reds ->
+    /// one group of 3, leaving 1), mirroring Block Jam where only a triple clears at a time.
     /// </summary>
     public static class MatchResolver
     {
         /// <summary>
-        /// Returns every match group currently present (each exactly matchSize units), as lists of
-        /// unit references so the caller can remove them without index invalidation. Empty if none.
+        /// Returns the first completed group (exactly matchSize units) of the given color, or null
+        /// if that color has no full run. Used to pop a group the instant its last unit lands.
         /// </summary>
-        public static List<List<Unit>> FindAllMatches(IReadOnlyList<Unit> units, int matchSize)
+        public static List<Unit> FindGroupOfColor(IReadOnlyList<Unit> units, UnitColor color, int matchSize)
+        {
+            int i = 0;
+            while (i < units.Count)
+            {
+                if (units[i].Color != color) { i++; continue; }
+                int runStart = i;
+                while (i < units.Count && units[i].Color == color) i++;
+                if (i - runStart >= matchSize)
+                {
+                    var g = new List<Unit>(matchSize);
+                    for (int k = runStart; k < runStart + matchSize; k++) g.Add(units[k]);
+                    return g;
+                }
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Returns every completed group currently in the list (one group of matchSize per run of
+        /// >= matchSize same-colored units). Used after a compaction to detect cascade matches.
+        /// </summary>
+        public static List<List<Unit>> FindAllGroups(IReadOnlyList<Unit> units, int matchSize)
         {
             var groups = new List<List<Unit>>();
-            if (units == null || units.Count < matchSize) return groups;
-
-            int runStart = 0;
-            for (int i = 1; i <= units.Count; i++)
+            int i = 0;
+            while (i < units.Count)
             {
-                bool sameAsPrev = i < units.Count && units[i].Color == units[runStart].Color;
-                if (!sameAsPrev)
+                int runStart = i;
+                var color = units[i].Color;
+                while (i < units.Count && units[i].Color == color) i++;
+                if (i - runStart >= matchSize)
                 {
-                    int runLen = i - runStart;
-                    if (runLen >= matchSize)
-                    {
-                        var group = new List<Unit>(matchSize);
-                        for (int k = runStart; k < runStart + matchSize; k++)
-                            group.Add(units[k]);
-                        groups.Add(group);
-                    }
-                    runStart = i;
+                    var g = new List<Unit>(matchSize);
+                    for (int k = runStart; k < runStart + matchSize; k++) g.Add(units[k]);
+                    groups.Add(g);
                 }
             }
             return groups;

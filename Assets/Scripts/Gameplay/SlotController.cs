@@ -43,26 +43,24 @@ namespace BlockJam.Gameplay
         // slots they're vacating until the animation finishes.
         private readonly List<Unit> _poppingUnits = new List<Unit>();
 
-        private bool _busy;            // true while an animation sequence is resolving
         private System.Action<Unit> _onUnitPopped; // callback so the board can return units to pool
 
+        // Total slots visually occupied: settled units + units mid-pop. Used for capacity checks
+        // (so a freshly tapped jam never lands on a slot still clearing).
         public int Count => _units.Count + _poppingUnits.Count;
-        public bool IsFull => Count >= _config.SlotCount;
-        public bool IsBusy => _busy;
 
-        /// <summary>Adds the count of each color currently settled in the bar into the given dict.
-        /// Units mid-pop are included so capacity checks treat their slots as still occupied.</summary>
-        public void AddColorCounts(System.Collections.Generic.Dictionary<UnitColor, int> counts)
-        {
-            AddColorsFrom(_units, counts);
-            AddColorsFrom(_poppingUnits, counts);
-        }
+        // Fail is judged ONLY on settled units: units mid-pop are leaving the bar, so they must not
+        // count toward "bar full, no match" - otherwise a match that just cleared space could still
+        // trigger a false game-over while its pop animation is playing.
+        public bool IsFull => _units.Count >= _config.SlotCount;
 
-        private static void AddColorsFrom(List<Unit> list, System.Collections.Generic.Dictionary<UnitColor, int> counts)
+        /// <summary>Adds the per-color counts of settled units (excluding mid-pop) into the dict.
+        /// Used by the board's instant capacity check to cancel guaranteed matches.</summary>
+        public void AddSettledColorCounts(System.Collections.Generic.Dictionary<UnitColor, int> counts)
         {
-            for (int i = 0; i < list.Count; i++)
+            for (int i = 0; i < _units.Count; i++)
             {
-                var col = list[i].Color;
+                var col = _units[i].Color;
                 counts.TryGetValue(col, out int n);
                 counts[col] = n + 1;
             }
@@ -144,64 +142,95 @@ namespace BlockJam.Gameplay
         }
 
         /// <summary>
-        /// Inserts a unit that has just landed, computing its grouped position AT LANDING TIME
-        /// (right next to the last unit of the same color). Computing it here - rather than when
-        /// the unit was tapped - is what keeps colors correctly grouped when several units fly in
-        /// concurrently during rapid tapping; each one slots in against the bar's current state.
+        /// Inserts a unit that has just landed (grouped next to its same-colored neighbours) and, if
+        /// that completes a match, pops THAT group immediately and independently - it does not wait
+        /// for any other group's animation. So if a red trio and a blue trio complete at nearly the
+        /// same moment, each pops in place the instant its own third unit arrives, in parallel.
         /// </summary>
         public void Accept(Unit unit, int insertIndexIgnored, MonoBehaviour coroutineHost,
                            System.Action onResolved, System.Action onFullNoMatch)
         {
+            _host = coroutineHost;
+            _onResolved = onResolved;
+            _onFullNoMatch = onFullNoMatch;
+
             int insertIndex = GetInsertIndexFor(unit.Color);
             insertIndex = Mathf.Clamp(insertIndex, 0, _units.Count);
             _units.Insert(insertIndex, unit);
-            coroutineHost.StartCoroutine(ResolveRoutine(onResolved, onFullNoMatch));
+
+            // Snap settled units to their grouped slots (quick), then check if THIS color now forms
+            // a match and, if so, pop that one group right away on its own coroutine.
+            RepositionImmediate();
+
+            var group = MatchResolver.FindGroupOfColor(_units, unit.Color, _config.MatchSize);
+            if (group != null)
+            {
+                foreach (var u in group) { _units.Remove(u); _poppingUnits.Add(u); }
+                _activePops++;
+                coroutineHost.StartCoroutine(PopGroup(group, OnGroupPopped));
+            }
+            else
+            {
+                // No match from this landing - if the bar is now full with no pending pops, lose.
+                EvaluateOutcome();
+            }
         }
 
-        private IEnumerator ResolveRoutine(System.Action onResolved, System.Action onFullNoMatch)
-        {
-            _busy = true;
+        private MonoBehaviour _host;
+        private System.Action _onResolved;
+        private System.Action _onFullNoMatch;
+        private int _activePops;   // groups currently mid jump+gather+pop
 
-            // Snap everyone to their grouped positions first.
+        /// <summary>Called when one group finishes its pop animation. We only compact the bar once
+        /// ALL active pops have finished - so groups that are still mid-match pop in their own place
+        /// first, and the leftover (non-matching) units slide in to fill gaps only afterwards. This
+        /// avoids units that are themselves about to match being dragged sideways prematurely.</summary>
+        private void OnGroupPopped()
+        {
+            _activePops--;
+            if (_activePops > 0) return;           // other groups still popping - don't shift yet
+            if (_host != null) _host.StartCoroutine(CompactThenEvaluate());
+        }
+
+        private IEnumerator CompactThenEvaluate()
+        {
             yield return RepositionAll(_config.SlotCompactDuration);
 
-            // Resolve matches in waves. Within a wave, ALL current matches pop simultaneously
-            // (parallel) - so two separate trios don't wait on each other. After a wave clears and
-            // the bar compacts, we re-scan; any new match formed by compaction pops in the next
-            // wave (cascade).
-            bool matchedAny = true;
-            while (matchedAny)
+            // Cascade: compacting may have brought same-colored units together into a new match.
+            // Pop every such group (in parallel, like the initial matches), then re-evaluate.
+            var groups = MatchResolver.FindAllGroups(_units, _config.MatchSize);
+            if (groups.Count > 0)
             {
-                matchedAny = false;
-
-                // Collect every match group present right now (as unit references, so removing
-                // them doesn't invalidate the others' indices).
-                var groups = MatchResolver.FindAllMatches(_units, _config.MatchSize);
-                if (groups.Count > 0)
+                foreach (var group in groups)
+                    foreach (var u in group) { _units.Remove(u); _poppingUnits.Add(u); }
+                foreach (var group in groups)
                 {
-                    matchedAny = true;
-
-                    // Remove them all from the logical list up front, mark them popping.
-                    foreach (var group in groups)
-                        foreach (var u in group) { _units.Remove(u); _poppingUnits.Add(u); }
-
-                    yield return new WaitForSeconds(_config.MatchPopDelay);
-
-                    // Run every group's jump+gather+pop in parallel; wait for all to finish.
-                    int running = groups.Count;
-                    foreach (var group in groups)
-                        StartCoroutine(PopGroup(group, () => running--));
-                    while (running > 0) yield return null;
-
-                    yield return RepositionAll(_config.SlotCompactDuration);
+                    _activePops++;
+                    if (_host != null) _host.StartCoroutine(PopGroup(group, OnGroupPopped));
                 }
+                yield break; // OnGroupPopped will compact + evaluate again once these finish
             }
 
-            _busy = false;
+            EvaluateOutcome();
+        }
 
-            // Lose check: bar full and nothing matched away.
-            if (IsFull) onFullNoMatch?.Invoke();
-            else onResolved?.Invoke();
+        /// <summary>Win/lose evaluation once nothing is mid-pop: full with no match left = lose.</summary>
+        private void EvaluateOutcome()
+        {
+            if (_activePops > 0) return;            // wait until all groups have popped
+            if (IsFull) _onFullNoMatch?.Invoke();
+            else _onResolved?.Invoke();
+        }
+
+        /// <summary>Instantly place settled units at their grouped slot positions (no tween), used
+        /// right before evaluating a fresh landing so positions/indices are consistent.</summary>
+        private void RepositionImmediate()
+        {
+            for (int i = 0; i < _units.Count; i++)
+            {
+                _units[i].transform.SetParent(transform, worldPositionStays: true);
+                _units[i].transform.position = GetSlotWorldPos(i);
+            }
         }
 
         /// <summary>
@@ -273,7 +302,8 @@ namespace BlockJam.Gameplay
         {
             foreach (var u in _units) _onUnitPopped?.Invoke(u);
             _units.Clear();
-            _busy = false;
+            _poppingUnits.Clear();
+            _activePops = 0;
         }
     }
 }

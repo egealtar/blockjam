@@ -198,29 +198,37 @@ namespace BlockJam.Gameplay
         private readonly System.Collections.Generic.List<UnitColor> _flyingColors = new System.Collections.Generic.List<UnitColor>();
 
         /// <summary>
-        /// Effective bar fill = settled units + in-flight units, MINUS the units that are
-        /// guaranteed to pop (every group of MatchSize same-color units cancels out). If this is
-        /// below SlotCount, there's room to send another jam right now.
+        /// Whether a jam of the given color may be sent right now, computed instantly at tap time.
+        ///
+        /// We count every jam committed to the bar - settled (excluding mid-pop, which have left)
+        /// plus those in flight - plus this new one, grouped by color. Every complete group of
+        /// MatchSize is subtracted, because it is guaranteed to pop and free those slots. If what
+        /// remains is below SlotCount there is room, so the tap is allowed.
+        ///
+        /// This gives exactly the intended feel:
+        ///  - With 2 reds + 2 blues + 2 purples and one free slot, tapping red (completes a red
+        ///    triple) frees room instantly, so you can immediately tap blue too (also a triple).
+        ///  - Tapping a color that does NOT complete a triple when only one slot is free leaves the
+        ///    remainder at SlotCount, so the next non-matching tap is blocked (and the run ends) -
+        ///    you can't fill the last slot with a dead color and be rescued later.
         /// </summary>
-        private int EffectiveSlotFill(UnitColor incoming)
+        private bool CanSend(UnitColor color)
         {
             var counts = new System.Collections.Generic.Dictionary<UnitColor, int>();
-            _slots.AddColorCounts(counts);                       // settled in the bar
-            for (int i = 0; i < _flyingColors.Count; i++)        // already in flight
+            _slots.AddSettledColorCounts(counts);                 // settled in the bar (excl. mid-pop)
+            for (int i = 0; i < _flyingColors.Count; i++)         // committed, in flight
             {
                 counts.TryGetValue(_flyingColors[i], out int n);
                 counts[_flyingColors[i]] = n + 1;
             }
-            counts.TryGetValue(incoming, out int inc);           // the jam we're about to send
-            counts[incoming] = inc + 1;
+            counts.TryGetValue(color, out int c);                 // this jam
+            counts[color] = c + 1;
 
-            int total = 0;
+            int remaining = 0;
             foreach (var kv in counts)
-            {
-                // Whatever doesn't form a complete match-of-3 stays in the bar.
-                total += kv.Value % _config.MatchSize;
-            }
-            return total;
+                remaining += kv.Value % _config.MatchSize;        // complete triples cancel out
+
+            return remaining <= _config.SlotCount;
         }
 
         /// <summary>Raycast-driven entry point: called by InputRouter with a tapped unit.</summary>
@@ -240,11 +248,12 @@ namespace BlockJam.Gameplay
                 return;
             }
 
-            // Capacity check using EFFECTIVE fill: counts settled + in-flight units but cancels out
-            // any group that will complete a match (and therefore pop). So if sending this jam only
-            // pushes the bar over SlotCount with units that are about to disappear, we still allow
-            // it - keeping play fluid - and only block when the bar would truly overflow.
-            if (EffectiveSlotFill(unit.Color) > _config.SlotCount)
+            // Capacity check (instant, at tap time): count settled + in-flight + this jam by color,
+            // cancel every complete triple (guaranteed to pop), and allow the tap only if what
+            // remains fits in SlotCount. So a tap that completes a match frees room immediately
+            // (you can chain matching taps), while filling the last slot with a non-matching color
+            // leaves the bar full and ends the run - no being rescued by an unrelated later match.
+            if (!CanSend(unit.Color))
             {
                 unit.ShakeBlocked();
                 return;
