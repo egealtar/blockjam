@@ -40,6 +40,10 @@ namespace BlockJam.Core
                  "on tall/narrow screens so the left/right corner jams never fall off-screen. 1.15 = 15% margin.")]
         [Range(1f, 1.6f)] [SerializeField] private float widthSafety = 1.15f;
 
+        [Tooltip("Minimum distance the camera will sit from the board. Stops small levels (e.g. a tiny " +
+                 "grid) from being framed too close, so the view stays comfortable. 0 = no minimum.")]
+        [SerializeField] private float minDistance = 14f;
+
         private int _lastW, _lastH;
         private float _boardWidth = 10f;   // X extent (world)
         private float _boardDepth = 10f;   // Z extent (world)
@@ -99,6 +103,9 @@ namespace BlockJam.Core
                 float halfFov = cam.fieldOfView * 0.5f * Mathf.Deg2Rad;
                 distance = requiredHalfHeight / Mathf.Tan(halfFov);
                 distance += _boardDepth * 0.5f; // clear the near edge of the tilted board
+                // Don't let tiny boards pull the camera in uncomfortably close - keep a minimum
+                // pull-back so small levels stay framed at a pleasant distance.
+                distance = Mathf.Max(distance, minDistance);
             }
 
             // Place the camera at the fixed tilt on the +Z side, looking toward -Z (down at the

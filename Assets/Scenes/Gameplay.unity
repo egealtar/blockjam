@@ -1525,6 +1525,7 @@ MonoBehaviour:
   bottomReserve: 0.6
   lookOffsetForward: 17
   widthSafety: 1.6
+  minDistance: 100
 --- !u!114 &1381877376
 MonoBehaviour:
   m_ObjectHideFlags: 0
